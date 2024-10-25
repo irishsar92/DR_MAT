@@ -286,3 +286,158 @@ sim3 <- simulateResiduals(rep_mod3)
 AIC(rep_mod, rep_mod2, rep_mod3)
 
 
+
+
+# DRO Mated Reproduction --------------------------------------------------
+
+male_rep <- read.csv('Male_repro_DR.csv')
+
+male_rep <- male_rep %>%
+  filter(Lost != 'INF' & Lost != 'L')
+
+
+male_rep$Treatment <- revalue(male_rep$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
+
+male_rep <- subset(male_rep, select = -c(D11, D12))
+
+rep_long <- male_rep %>% 
+  pivot_longer(
+    cols = `D1`:`D10`, 
+    names_to = "Day",
+    values_to = "value"
+  )
+
+rep_long$Treatment <- factor(rep_long$Treatment, levels = c('F','F+O','DR','DR+O'))
+
+levels(rep_long$Treatment)
+
+
+
+
+rep_long$Day <- factor(rep_long$Day, levels = c('D1','D2','D3','D4','D5','D6','D7','D8','D9','D10'))
+
+## Age-specific reproduction plot
+
+rep <-ggplot(data=rep_long, aes(x=factor(Day), y=value, group=Treatment, color=Treatment))+
+  geom_jitter(alpha = 0.2, position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.5))+
+  stat_summary(fun.data="mean_cl_boot", geom="errorbar", size = 1, width=0.0, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
+  stat_summary(fun.data="mean_cl_boot", geom="line",  size=1, position = position_dodge(0.5)) +
+  theme_classic()+
+  labs(y="Offspring number", x="", size=20)+
+  labs(col="")+
+  theme(axis.title.y = element_text(size=12))+
+  theme(axis.title.x = element_text(size=12))+
+  theme(legend.key.width = unit(0.5,"cm"))+
+  coord_cartesian(ylim = c(0,170))+
+  theme(legend.position = c(0.8,0.9))+
+  scale_colour_manual(values = palette)
+
+rep
+
+#Sum number of offspring over 5 days for individuals
+totalrep<-na.omit(as.data.frame.table(tapply(rep_long$value,list(rep_long$Treatment, rep_long$ID),sum)))
+
+
+#rename columns
+names(totalrep)<-c("Treatment", "Replicate", "Totrep")
+
+totrep_dab <-
+  totalrep %>%
+  load(x =Treatment, y=Totrep,
+       idx = c('F','F+O','DR','DR+O'))
+
+
+
+totrep_p <- mean_diff(totrep_dab)
+
+tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3')
+
+tot_rep_plot
+
+Mated_tot <- lm(Totrep ~ Treatment, data = totalrep)
+summary(Mated_tot)
+mated_tot_sim <- simulateResiduals(Mated_tot, plot = T)
+
+
+#### Lambda
+
+#spread data back out
+rep_wide <- spread(rep_long, Day, value)
+
+rep_wide <- na.omit(rep_wide)
+
+rep_wide <- subset(rep_wide, select = -c(Lost))
+
+#calculate Lambda for each individual
+L <- matrix(nrow = nrow(rep_wide), ncol = 4)
+
+for (i in 1:nrow(rep_wide)){
+  Les <- matrix(0, ncol = 12, nrow = 12) #ncol and nrow should = no. days repro +2
+  diag(Les[-1,]) <- rep(1, 11) # add the 1s for survival probability diagonally
+  Fert <- c(0,0, as.numeric(as.vector(rep_wide[i,][4:13]))) #the columns in data that has the reproductive counts
+  Fert[is.na(Fert)] <- 0 #makes all NAs into 0s
+  Les[1,] <- c(Fert)
+  class(Les) <- "leslie.matrix"
+  Lambda <- popbio::eigen.analysis(Les)$lambda1
+  L[i, 1:4] <- c(paste0(rep_wide$Block[i]), paste0(rep_wide$Treatment[i]), paste0(rep_wide$ID[i]), Lambda)
+  
+}
+
+#rename columns
+colnames(L)<-c("Block",  "Treatment","ID","Lambda")
+
+#make L a data frame
+Data<-as.data.frame(L)
+
+#make sure it's numeric
+Data$Lambda<-as.numeric(as.character(Data$Lambda))
+
+str(Data)
+
+
+mated_lam <- lm(Lambda ~ Treatment, data = Data)
+summary(mated_lam)
+sim_lam_mated <- simulateResiduals(mated_lam, plot = T)
+
+#create dabestr plot
+Lambda_rep <-
+  Data %>%
+  load(Treatment, Lambda,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Lambda_rep_dab <- mean_diff(Lambda_rep)
+
+lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3')
+
+lam_plot
+
+rep/(tot_rep_plot + lam_plot)
+
+ggsave('DRO_male_reproduction.tif', height = 8, width = 10)
+
+
+#Analyse age-specific reproduction 
+
+rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8', 'D9' = '9', 'D10' = '10'))
+rep_long$Day <- as.numeric(rep_long$Day)
+
+hist(rep_long$value)
+
+mated_mod <- glmmTMB(value ~ Treatment*Day + (1|ID), data = rep_long, family = 'nbinom2')
+summary(mated_mod)
+sim_mat <- simulateResiduals(mated_mod, plot = T)
+testDispersion(sim_mat)
+testZeroInflation(sim_mat)
+
+
+mated_mod2 <- glmmTMB(value ~ Treatment*Day + (1|ID), ziformula = ~Day, data = rep_long, family = 'nbinom2')
+summary(mated_mod2)
+sim_mat2 <- simulateResiduals(mated_mod2, plot = T)
+AIC(mated_mod2, mated_mod)
+
+mated_mod3 <- glmmTMB(value ~ Treatment*Day + (1|ID), ziformula = ~Day, disp = ~Day, data = rep_long, family = 'nbinom2')
+summary(mated_mod3)    
+sim_mat3 <- simulateResiduals(mated_mod3, plot = T)
+AIC(mated_mod, mated_mod2, mated_mod3)
+
