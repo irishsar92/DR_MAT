@@ -697,3 +697,99 @@ summary(egg_mod2)
 egg_mod4 <- lm(Egg_size ~ Treatment, data = egg_4)
 summary(egg_mod4)
 
+
+
+# DRO Body Size -----------------------------------------------------------
+binary <- read.csv('Binary_size.csv')
+
+binary$Treatment <- as.factor(binary$Treatment)
+
+binary$Treatment <- factor(binary$Treatment, levels = c('F','FO','DR','DRO'))
+
+binary$Treatment <- revalue(binary$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
+
+
+Binary <-
+  binary %>%
+  load(Treatment, Body,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Binary_dab <- mean_diff(Binary)
+
+Binary_plot <- dabest_plot(Binary_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+Binary_plot
+
+binary_d4 <- binary %>%
+  filter(Day == 4)
+
+Binary_d4 <-
+  binary_d4 %>%
+  load(Treatment, Body,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Binary_d4_dab <- mean_diff(Binary_d4)
+
+Binary_d4_plot <- dabest_plot(Binary_d4_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+Binary_d4_plot
+
+binary_d2 <- binary %>%
+  filter(Day == 2)
+
+Binary_d2 <-
+  binary_d2 %>%
+  load(Treatment, Body,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Binary_d2_dab <- mean_diff(Binary_d2)
+
+Binary_d2_plot <- dabest_plot(Binary_d2_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+Binary_d2_plot
+
+binary = subset(binary, select = c(ID, Day, Treatment, Body))
+
+binary_wide <- spread(binary, Day, Body)
+
+names(binary_wide) <- c('ID', 'Treatment', 'D2','D4')
+binary_wide
+
+binary_wide$Growth <- binary_wide$D4 - binary_wide$D2
+
+binary_growth <- 
+  binary_wide %>%
+  load(Treatment, Growth, 
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+binary_growth_dab <- mean_diff(binary_growth)
+
+binary_growth_plot <- dabest_plot(binary_growth_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+binary_growth_plot
+
+binary_means <- summarySE(measurevar = 'Body', groupvars = c('Treatment', 'Day'), data = binary)
+
+binary$Day <- as.factor(binary$Day)
+binary_means$Day <- as.factor(binary_means$Day)
+
+growth_plot <- ggplot()+
+  geom_point(data = binary_means, aes(x = Day, colour = Treatment, y = Body), position = position_dodge(width = 0.5), size = 3)+
+  geom_errorbar(data = binary_means, aes(x = Day, colour = Treatment, ymin = Body - 2*se, ymax = Body + 2*se), position = position_dodge(width = 0.5), size = 1.5, width = 0.2)+
+  geom_point(data = binary, aes(x = Day, colour = Treatment, y = Body), size = 2, alpha = 0.5, position = position_dodge(width = 0.5))+
+  geom_line(data = binary_means, aes(x = Day, colour = Treatment, y = Body, group = Treatment), position = position_dodge(width = 0.5), size = 1.5)+
+  theme_classic()+
+  labs(y ='Area (mm^2)', x = '')+
+  theme(axis.title.y = element_text(size=14), axis.text.y = element_text(size = 12))+
+  theme(axis.title.x = element_text(size=14), axis.text.x = element_text(size = 12), legend.text = element_text(size = 12), legend.title = element_text(size = 12), legend.position = 'top')+
+  scale_color_manual(values = palette)+
+  scale_x_discrete(labels = c('2' = 'Day 2', '4' = 'Day 4'))
+
+growth_plot
+
+growth_plot + binary_growth_plot
+
+ggsave('growth.tif', height = 6, width = 10)
+
+
+
