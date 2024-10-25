@@ -1,5 +1,7 @@
 
-#Setup
+
+# Setup -------------------------------------------------------------------
+
 
 suppressPackageStartupMessages({
   library(glmmTMB)
@@ -543,5 +545,90 @@ ggsave('DR_all_plot.tif', height = 8, width = 12)
 #test cox models for fit
 cox.zph(cox)
 cox.zph(cox_matcen)
+
+
+
+
+
+
+
+# DRO Heatshock Survival --------------------------------------------------
+DR_HS <- read.csv('DR_HS.csv')
+DR_HS$Age <- as.numeric(DR_HS$Age)
+DR_HS <- na.omit(DR_HS)
+
+DR_HS$Treatment <- as.factor(DR_HS$Treatment)
+DR_HS$Treatment <- factor(DR_HS$Treatment, levels = c('F','FO','DR','DRO'))
+#
+DR_HS$Treatment <- relevel(DR_HS$Treatment, ref = 'F')
+
+
+
+###Forest plot function
+meforest <- function(cox, F){  #Eds version of forest plot
+  require(AICcmodavg)
+  require(ggplot2)
+  require(forcats)
+  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
+  ref <- c(paste(F), 0,NA, NA)
+  store[1,] <- ref
+  for (x in 1:length(cox$coefficients)){
+    y = x+1
+    mean<-cox$coefficients[x]
+    emean <- (mean)
+    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
+    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
+    eCIL <- (CIL)
+    eCUL <- (CUL)
+    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
+  colnames(store) <- c("Treatment", "mean", "CIL","CUL")
+  store <- as.data.frame(store)
+  store$mean <- as.numeric(as.character(store$mean))
+  store$CIL <- as.numeric(as.character(store$CIL))
+  store$CUL <- as.numeric(as.character(store$CUL))
+  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Treatment, colour = Treatment)) +
+    geom_point(size=4, shape = 19, colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
+    geom_errorbarh(height=0.25, size=0.9,  colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
+    theme_minimal() +
+    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
+    xlab("Hazard Ratio")+
+    ylab("")+
+    theme(
+      axis.text = element_text(size = 18),
+      axis.title = element_text(size = 20)
+    )+
+    scale_y_discrete(limits = (levels(store$Treatment)), labels = c('TreatmentDR'='DR', 'TreatmentDRO' = 'DR+O', 'TreatmentF' ='F', 'TreatmentFO' ='F+O'))+
+    expand_limits(x = c(-1.5,0.5))
+  return(forest)
+}
+
+
+#  scale_y_discrete(limits = (levels(store$Treatment)), labels = c('TreatmentF' ='F', 'TreatmentFO' ='F+O','TreatmentDR'='DR', 'TreatmentDRO' = 'DR+O'))+
+
+cox <- coxme(Surv(Age, Event) ~ Treatment +(1|Plate.ID), data = DR_HS)
+summary(cox)
+
+forest_HS <-meforest(cox, "F")
+forest_HS
+
+DR_HS$Treatment <- revalue(DR_HS$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
+
+
+levels(DR_HS$Treatment)
+
+
+#Survival curve with line to divdie hours and days
+surv<-survfit(Surv(Age,Event)~Treatment,data=DR_HS)
+summary(surv)
+surv <- na.omit(surv)
+HS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DR_HS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.9), legend.title = "", palette = palette, title = "", censor = FALSE, xlab = "\nHour                                                 Day", xlim=c(0,15), break.time.by = 2, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+
+HS_plot <- HS_plot$plot + geom_vline(xintercept = 9, linetype = 'dashed', colour = 'red', size = 1)
+
+DR_HS_plot <- ggarrange(HS_plot, forest_HS, nrow = 2, ncol = 1,heights = c(2, 1))
+DR_HS_plot
+
+ggsave('DR_HS_plot.tif', height = 12, width = 10)
+
 
 
