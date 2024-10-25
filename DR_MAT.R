@@ -182,6 +182,7 @@ rep <-ggplot(data=rep_long, aes(x=factor(Day), y=value, group=Treatment, color=T
 
 rep
 
+
 #Sum number of offspring over 5 days for individuals
 totalrep<-na.omit(as.data.frame.table(tapply(rep_long$value,list(rep_long$Treatment, rep_long$ID),sum)))
 
@@ -257,4 +258,31 @@ hist(Data$Lambda)
 lam_mod <- lm(Lambda ~ Treatment, data = Data)
 summary(lam_mod)
 sim_lam <- simulateResiduals(lam_mod, plot = T)
+
+
+## Analysis of age-specific reproduction
+
+hist(rep_long$value) #use negbin model
+
+rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8'))
+rep_long$Day <- as.numeric(rep_long$Day)
+
+
+rep_mod <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, family = 'nbinom2')
+summary(rep_mod)
+sim1 <- simulateResiduals(rep_mod, plot = T)
+testDispersion(sim1)
+check_overdispersion(rep_mod)
+testZeroInflation(rep_mod)
+
+rep_mod2 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+summary(rep_mod2)
+sim2 <- simulateResiduals(rep_mod2, plot = T)
+AIC(rep_mod, rep_mod2)                  
+
+rep_mod3 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, disp = ~Day, family = 'nbinom2')
+summary(rep_mod3)
+sim3 <- simulateResiduals(rep_mod3)
+AIC(rep_mod, rep_mod2, rep_mod3)
+
 
