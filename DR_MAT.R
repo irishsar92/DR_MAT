@@ -200,6 +200,10 @@ tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label 
 
 tot_rep_plot
 
+hist(totalrep$Totrep)
+tot_rep_mod <- lm(Totrep ~ Treatment, data = totalrep)
+summary(tot_rep_mod)
+
 #### Lambda
 
 #spread data back out
@@ -248,3 +252,9 @@ lam_plot
 rep/(tot_rep_plot+lam_plot)
 
 ggsave('DRO_reproduction.tif', height = 8, width = 10)
+
+hist(Data$Lambda)
+lam_mod <- lm(Lambda ~ Treatment, data = Data)
+summary(lam_mod)
+sim_lam <- simulateResiduals(lam_mod, plot = T)
+
