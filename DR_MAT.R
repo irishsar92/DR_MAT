@@ -55,3 +55,5 @@ levels(DRO_LS$Treatment)
 
 DRO_LS2 <- DRO_LS %>%
   filter(DRO_LS$Cause != 'L' & DRO_LS$Cause !='W' & DRO_LS$Cause != 'E')
+
+surv<-survfit(Surv(Age,Event)~Treatment.ID,data=DRO_LS2)
