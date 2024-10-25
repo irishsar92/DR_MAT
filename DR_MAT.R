@@ -607,6 +607,7 @@ meforest <- function(cox, F){  #Eds version of forest plot
 
 cox <- coxme(Surv(Age, Event) ~ Treatment +(1|Plate.ID), data = DR_HS)
 summary(cox)
+cox.zph(cox)#it's OK
 
 forest_HS <-meforest(cox, "F")
 forest_HS
@@ -629,6 +630,62 @@ DR_HS_plot <- ggarrange(HS_plot, forest_HS, nrow = 2, ncol = 1,heights = c(2, 1)
 DR_HS_plot
 
 ggsave('DR_HS_plot.tif', height = 12, width = 10)
+
+
+
+# DRO Egg Size ------------------------------------------------------------
+
+egg <- read.csv('Egg_size.csv')
+
+egg$Treatment <- as.factor(egg$Treatment)
+egg$Treatment <- factor(egg$Treatment, levels = c('F','FO','DR','DRO'))
+egg$Treatment <- revalue(egg$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
+
+egg_2 <- egg %>%
+  filter(Day == 2)
+
+egg_4 <- egg %>%
+  filter(Day == 4)
+
+Egg_d4 <-
+  egg_4 %>%
+  load(Treatment, Egg_size,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Egg_d4_dab <- mean_diff(Egg_d4)
+
+Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+Egg_d4_plot
+
+egg_d4_mod <- lm(Egg_size ~ Treatment, data = egg_4)
+summary(egg_d4_mod)
+
+Egg_d2 <-
+  egg_2 %>%
+  load(Treatment, Egg_size,
+       idx = list(c("F", "F+O", "DR", "DR+O")))
+
+Egg_d2_dab <- mean_diff(Egg_d2)
+
+Egg_d2_plot <- dabest_plot(Egg_d2_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+
+Egg_d2_plot
+
+egg_plots <- ggarrange(Egg_d2_plot, Egg_d4_plot, ncol = 2, nrow = 1)
+
+egg_plots
+
+cowplot::plot_grid(
+  plotlist = list(Egg_d2_plot, Egg_d4_plot),
+  nrow = 1,
+  ncol = 2,
+  labels = c('.                             D2 Egg Size','.                            D4 Egg Size ')
+)
+
+ggsave('egg.tif', height = 8, width = 10)
+
+
 
 
 
