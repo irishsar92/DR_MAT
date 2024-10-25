@@ -51,6 +51,7 @@ palette <- c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')
 #gitcreds_set()
 #use_github()
 
+R.version
 
 
 
@@ -658,7 +659,7 @@ Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = 'Area (mm^2)', raw_m
 
 Egg_d4_plot
 
-egg_d4_mod <- lm(Egg_size ~ Treatment, data = egg_4)
+egg_d4_mod <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_4)
 summary(egg_d4_mod)
 
 Egg_d2 <-
@@ -688,13 +689,11 @@ ggsave('egg.tif', height = 8, width = 10)
 
 head(egg)
 
-egg_mod <- lmerTest::lmer(Egg_size ~ Treatment * Day + (1|ID), data = egg)
-summary(egg_mod)
 
-egg_mod2 <- lm(Egg_size ~ Treatment, data = egg_2)
+egg_mod2 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_2)
 summary(egg_mod2)
 
-egg_mod4 <- lm(Egg_size ~ Treatment, data = egg_4)
+egg_mod4 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_4)
 summary(egg_mod4)
 
 
