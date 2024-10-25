@@ -42,4 +42,16 @@ suppressPackageStartupMessages({
   library(Hmisc)
 })
 
-use_git()
+#use_git()
+
+
+# DRO Lifespan ------------------------------------------------------------
+
+DRO_LS <- read.csv('DRO_LS.csv')
+DRO_LS <- na.omit(DRO_LS)
+DRO_LS$Treatment <- as.factor(DRO_LS$Treatment)
+DRO_LS$Treatment <- droplevels(DRO_LS$Treatment)
+levels(DRO_LS$Treatment)
+
+DRO_LS2 <- DRO_LS %>%
+  filter(DRO_LS$Cause != 'L' & DRO_LS$Cause !='W' & DRO_LS$Cause != 'E')
