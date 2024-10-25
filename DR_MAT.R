@@ -791,5 +791,12 @@ growth_plot + binary_growth_plot
 
 ggsave('growth.tif', height = 6, width = 10)
 
+growth_mod <- lm(Growth ~ Treatment, data = binary_wide)
+summary(growth_mod)
 
 
+D2_mod <- lm(D2 ~ Treatment, data = binary_wide)
+summary(D2_mod)
+
+D4_mod <- lm(D4 ~ Treatment, data = binary_wide)
+summary(D4_mod)
