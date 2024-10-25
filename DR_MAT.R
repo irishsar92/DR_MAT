@@ -686,6 +686,14 @@ cowplot::plot_grid(
 ggsave('egg.tif', height = 8, width = 10)
 
 
+head(egg)
 
+egg_mod <- lmerTest::lmer(Egg_size ~ Treatment * Day + (1|ID), data = egg)
+summary(egg_mod)
 
+egg_mod2 <- lm(Egg_size ~ Treatment, data = egg_2)
+summary(egg_mod2)
+
+egg_mod4 <- lm(Egg_size ~ Treatment, data = egg_4)
+summary(egg_mod4)
 
