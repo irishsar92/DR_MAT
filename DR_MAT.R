@@ -216,22 +216,22 @@ rep_wide <- spread(rep_long, Day, value)
 rep_wide <- na.omit(rep_wide)
 
 #calculate Lambda for each individual
-L <- matrix(nrow = nrow(rep_wide), ncol = 4)
+L <- matrix(nrow = nrow(rep_wide), ncol = 3)
 
 for (i in 1:nrow(rep_wide)){
   Les <- matrix(0, ncol = 10, nrow = 10) #ncol and nrow should = no. days repro +2
   diag(Les[-1,]) <- rep(1, 9) # add the 1s for survival probability diagonally
-  Fert <- c(0,0, as.numeric(as.vector(rep_wide[i,][4:11]))) #the columns in data that has the reproductive counts
+  Fert <- c(0,0, as.numeric(as.vector(rep_wide[i,][3:10]))) #the columns in data that has the reproductive counts
   Fert[is.na(Fert)] <- 0 #makes all NAs into 0s
   Les[1,] <- c(Fert)
   class(Les) <- "leslie.matrix"
   Lambda <- popbio::eigen.analysis(Les)$lambda1
-  L[i, 1:4] <- c(paste0(rep_wide$Block[i]),paste0(rep_wide$ID[i]), paste0(rep_wide$Treatment[i]), Lambda)
+  L[i, 1:3] <- c(paste0(rep_wide$ID[i]), paste0(rep_wide$Treatment[i]), Lambda)
   
 }
 
 #rename columns
-colnames(L)<-c("Block", "ID", "Treatment","Lambda")
+colnames(L)<-c("ID", "Treatment","Lambda")
 
 #make L a data frame
 Data<-as.data.frame(L)
@@ -257,37 +257,37 @@ rep/(tot_rep_plot+lam_plot)
 
 ggsave('DRO_reproduction.tif', height = 8, width = 10)
 
-hist(Data$Lambda)
+hist(Data$Lambda)#distribution is a bit bimodal, but try linear model
 lam_mod <- lm(Lambda ~ Treatment, data = Data)
-summary(lam_mod)
-sim_lam <- simulateResiduals(lam_mod, plot = T)
+summary(lam_mod)#results make sense
+sim_lam <- simulateResiduals(lam_mod, plot = T) 
 
-
-## Analysis of age-specific reproduction
-
-hist(rep_long$value) #use negbin model
+hist(rep_long$value) #use poisson model
 
 rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8'))
 rep_long$Day <- as.numeric(rep_long$Day)
 
 
-rep_mod <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, family = 'nbinom2')
+rep_mod <- glmmTMB(value ~ Treatment * Day^2 + (1|ID), data = rep_long, family = 'poisson')
 summary(rep_mod)
 sim1 <- simulateResiduals(rep_mod, plot = T)
 testDispersion(sim1)
 check_overdispersion(rep_mod)
 testZeroInflation(rep_mod)
 
-rep_mod2 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+rep_mod2 <- glmmTMB(value ~ Treatment * Day^2 + (1|ID), data = rep_long, ziformula = ~Day, family = 'poisson')
 summary(rep_mod2)
 sim2 <- simulateResiduals(rep_mod2, plot = T)
 AIC(rep_mod, rep_mod2)                  
 
-rep_mod3 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, disp = ~Day, family = 'nbinom2')
-summary(rep_mod3)
-sim3 <- simulateResiduals(rep_mod3)
-AIC(rep_mod, rep_mod2, rep_mod3)
+rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
 
+
+rep_mod3 <- glmmTMB(value ~ Treatment * Day^2 + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+summary(rep_mod3)
+sim3 <- simulateResiduals(rep_mod3, plot = T)
+AIC(rep_mod, rep_mod2, rep_mod3)
+testDispersion(rep_mod3)
 
 
 
@@ -301,7 +301,6 @@ male_rep <- male_rep %>%
 
 male_rep$Treatment <- revalue(male_rep$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
 
-male_rep <- subset(male_rep, select = -c(D11, D12))
 
 rep_long <- male_rep %>% 
   pivot_longer(
@@ -372,6 +371,9 @@ rep_wide <- na.omit(rep_wide)
 
 rep_wide <- subset(rep_wide, select = -c(Lost))
 
+rep_wide$Treatment <- relevel(rep_wide$Treatment, ref = 'F')
+
+
 #calculate Lambda for each individual
 L <- matrix(nrow = nrow(rep_wide), ncol = 4)
 
@@ -397,6 +399,9 @@ Data<-as.data.frame(L)
 Data$Lambda<-as.numeric(as.character(Data$Lambda))
 
 str(Data)
+
+Data$Treatment <- as.factor(Data$Treatment)
+Data$Treatment <- relevel(Data$Treatment, ref = 'F')
 
 
 mated_lam <- lm(Lambda ~ Treatment, data = Data)
@@ -427,22 +432,29 @@ rep_long$Day <- as.numeric(rep_long$Day)
 
 hist(rep_long$value)
 
-mated_mod <- glmmTMB(value ~ Treatment*Day + (1|ID), data = rep_long, family = 'nbinom2')
+mated_mod <- glmmTMB(value ~ Treatment*Day^2 + (1|ID), data = rep_long, family = 'poisson')
 summary(mated_mod)
 sim_mat <- simulateResiduals(mated_mod, plot = T)
 testDispersion(sim_mat)
 testZeroInflation(sim_mat)
+check_overdispersion(mated_mod)
 
-mated_mod2 <- glmmTMB(value ~ Treatment*Day + (1|ID), ziformula = ~Day, data = rep_long, family = 'nbinom2')
+mated_mod2 <- glmmTMB(value ~ Treatment*Day^2 + (1|ID), ziformula = ~Day^2, data = rep_long, family = 'poisson')
 summary(mated_mod2)
 sim_mat2 <- simulateResiduals(mated_mod2, plot = T)
 AIC(mated_mod2, mated_mod)
+testZeroInflation(sim_mat2)
+testDispersion(sim_mat2)
+check_overdispersion(mated_mod2)
 
-mated_mod3 <- glmmTMB(value ~ Treatment*Day + (1|ID), ziformula = ~Day, disp = ~Day, data = rep_long, family = 'nbinom2')
+rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
+
+mated_mod3 <- glmmTMB(value ~ Treatment*(Day^2) + (1|ID) + (1|OLRE), ziformula = ~Day^2, data = rep_long, family = 'poisson')
 summary(mated_mod3)    
 sim_mat3 <- simulateResiduals(mated_mod3, plot = T)
-AIC(mated_mod, mated_mod2, mated_mod3)
-
+AIC(mated_mod2, mated_mod3)
+testDispersion(sim_mat3)
+testZeroInflation(sim_mat3)
 
 
 
