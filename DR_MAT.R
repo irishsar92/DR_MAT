@@ -488,7 +488,7 @@ Mated_LS2 <- Mated_LS2 %>%
 
 surv<-survfit(Surv(Age,Event)~Treatment.ID,data=Mated_LS2)
 
-Mated_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.3), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,25), break.time.by = 5, palette = palette, position= position_dodge(0.9), font.tickslab = c(14), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.legend = c(16))
+Mated_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.3), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, palette = palette, position= position_dodge(0.9), font.tickslab = c(14), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.legend = c(16))
 Mated_LS_plot
 
 #Censor matricides
@@ -497,7 +497,7 @@ Mated_LS3 <- Mated_LS2 %>%
 
 surv<-survfit(Surv(Age,Event)~Treatment.ID,data=Mated_LS3)
 
-Mated_LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,25), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.tickslab = c(14), font.legend = c(16))
+Mated_LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.tickslab = c(14), font.legend = c(16))
 Mated_LS_plot_matcen
 
 #Function for creating forest plot
@@ -705,10 +705,16 @@ head(egg)
 egg_mod2 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_2)
 summary(egg_mod2)
 
+egg_mod2_2 <- lm(Egg_size ~ Treatment, data = egg_2)
+anova(egg_mod2, egg_mod2_2)
+AIC(egg_mod2, egg_mod2_2)#keep ID in
+
 egg_mod4 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_4)
 summary(egg_mod4)
 
-
+egg_mod4_2 <- lm(Egg_size ~ Treatment, data = egg_4)
+summary(egg_mod4_2)
+AIC(egg_mod4, egg_mod4_2)#keep ID in
 
 # DRO Body Size -----------------------------------------------------------
 binary <- read.csv('Binary_size.csv')
