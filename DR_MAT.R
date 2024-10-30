@@ -80,9 +80,9 @@ surv<-survfit(Surv(Age,Event)~Treatment.ID,data=DRO_LS3)
 LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.tickslab = c(14), font.legend = c(16))
 LS_plot_matcen
 
-DRO_LS3$Treatment <- as.factor(DRO_LS3$Treatment)
-DRO_LS3$Treatment <- relevel(DRO_LS3$Treatment, ref = 'F')
-DRO_LS2$Treatment <- relevel(DRO_LS2$Treatment, ref = 'F')
+DRO_LS3$Treatment.ID <- as.factor(DRO_LS3$Treatment.ID)
+DRO_LS3$Treatment.ID <- relevel(DRO_LS3$Treatment.ID, ref = 'F')
+DRO_LS2$Treatment.ID <- relevel(DRO_LS2$Treatment.ID, ref = 'F')
 
 #Function for creating forest plot
 meforest <- function(cox, F){  #Eds version of forest plot
@@ -123,14 +123,20 @@ meforest <- function(cox, F){  #Eds version of forest plot
 }
 
 
-cox <- coxme(Surv(Age, Event) ~ Treatment +(1|Plate.ID), data = DRO_LS2)
+cox <- coxme(Surv(Age, Event) ~ Treatment.ID +(1|Plate.ID), data = DRO_LS2)
 summary(cox)
+
+cox_emm <- emmeans(cox, 'Treatment.ID')
+pairs(cox_emm)
 
 forest <-meforest(cox, "F")
 forest
 
-cox_matcen <- coxme(Surv(Age, Event) ~ Treatment +(1|Plate.ID), data = DRO_LS3)
+cox_matcen <- coxme(Surv(Age, Event) ~ Treatment.ID +(1|Plate.ID), data = DRO_LS3)
 summary(cox_matcen)
+
+emm_cox_matcen <- emmeans(cox_matcen, 'Treatment.ID')
+pairs(emm_cox_matcen)
 
 forest_matcen <- meforest(cox_matcen, 'F')
 forest_matcen
@@ -208,6 +214,8 @@ hist(totalrep$Totrep)
 tot_rep_mod <- lm(Totrep ~ Treatment, data = totalrep)
 summary(tot_rep_mod)
 
+emm_LRS <- emmeans(tot_rep_mod, 'Treatment')
+pairs(emm_LRS)
 #### Lambda
 
 #spread data back out
@@ -263,6 +271,9 @@ summary(lam_mod)#results make sense
 sim_lam <- simulateResiduals(lam_mod, plot = T) 
 
 hist(rep_long$value) #use poisson model
+
+emm_lam <- emmeans(lam_mod, 'Treatment')
+pairs(emm_lam)
 
 rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8'))
 rep_long$Day <- as.numeric(rep_long$Day)
@@ -361,7 +372,8 @@ Mated_tot <- lm(Totrep ~ Treatment, data = totalrep)
 summary(Mated_tot)
 mated_tot_sim <- simulateResiduals(Mated_tot, plot = T)
 
-
+emm_mated_LRS <- emmeans(Mated_tot, 'Treatment')
+pairs(emm_mated_LRS)
 #### Lambda
 
 #spread data back out
@@ -408,6 +420,8 @@ mated_lam <- lm(Lambda ~ Treatment, data = Data)
 summary(mated_lam)
 sim_lam_mated <- simulateResiduals(mated_lam, plot = T)
 
+emm_mated_lam <- emmeans(mated_lam, 'Treatment')
+pairs(emm_mated_lam)
 #create dabestr plot
 Lambda_rep <-
   Data %>%
@@ -817,3 +831,13 @@ summary(D2_mod)
 
 D4_mod <- lm(D4 ~ Treatment, data = binary_wide)
 summary(D4_mod)
+
+#Post-hoc tests
+emm_D2size <- emmeans(D2_mod, 'Treatment')
+pairs(emm_D2size)
+
+emm_D4size <- emmeans(D4_mod, 'Treatment')
+pairs(emm_D4size)
+
+emm_growth <- emmeans(growth_mod, 'Treatment')
+pairs(emm_growth)
