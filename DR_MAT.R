@@ -715,17 +715,14 @@ head(egg)
 
 egg_mod2 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_2)
 summary(egg_mod2)
+emm_egg2 <- emmeans(egg_mod2, 'Treatment')
+pairs(emm_egg2)
 
-egg_mod2_2 <- lm(Egg_size ~ Treatment, data = egg_2)
-anova(egg_mod2, egg_mod2_2)
-AIC(egg_mod2, egg_mod2_2)#keep ID in
 
 egg_mod4 <- lmerTest::lmer(Egg_size ~ Treatment + (1|ID), data = egg_4)
 summary(egg_mod4)
-
-egg_mod4_2 <- lm(Egg_size ~ Treatment, data = egg_4)
-summary(egg_mod4_2)
-AIC(egg_mod4, egg_mod4_2)#keep ID in
+emm_egg4 <- emmeans(egg_mod4, 'Treatment')
+pairs(emm_egg4)
 
 # DRO Body Size -----------------------------------------------------------
 binary <- read.csv('Binary_size.csv')
