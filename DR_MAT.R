@@ -301,7 +301,6 @@ AIC(rep_mod, rep_mod2, rep_mod3)
 testDispersion(rep_mod3)
 
 
-
 # DRO Mated Reproduction --------------------------------------------------
 
 male_rep <- read.csv('Male_repro_DR.csv')
