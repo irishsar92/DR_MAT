@@ -835,3 +835,220 @@ pairs(emm_D4size)
 
 emm_growth <- emmeans(growth_mod, 'Treatment')
 pairs(emm_growth)
+
+
+# Outdoor -----------------------------------------------------------------
+
+DR <- read.csv('DR_wild2.csv')
+
+DR$Treatment <- factor(DR$Treatment, levels = c('F','FO','DR','DRO'))
+DR$Treatment <- revalue(DR$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
+
+D7 <- DR %>%
+  filter(Day == 7)
+
+D14 <- DR %>%
+  filter(Day== 14)
+
+D21 <- DR %>%
+  filter(Day == 21)
+
+## Day 7
+
+D7_dab <- 
+  D7 %>%
+  load(x =Treatment, y= No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D7_mean_diff <- mean_diff(D7_dab)
+
+D7_p <- dabest_plot(D7_mean_diff, FALSE, raw_marker_spread = 0.25, raw_marker_size = 0.7, swarm_label = 'Population index',custom_palette = 'd3')
+D7_p
+
+ggsave('D7.tif', height = 10, width = 12)
+
+#Get means
+D7 <- na.omit(D7)
+D7_means <- summarySE(D7, measurevar ='No_worms', groupvars = c('Treatment','Population'))
+
+D7_dab <- 
+  D7_means %>%
+  load(x =Treatment, y= No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D7_mean_diff <- mean_diff(D7_dab)
+D7_means_p <- dabest_plot(D7_mean_diff, FALSE, raw_marker_spread = 1, custom_palette = 'd3')
+
+D7_means_p
+
+## Day 14
+D14_dab <-
+  D14 %>%
+  load(x =Treatment, y =No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D14_mean_diff <- mean_diff(D14_dab)
+
+D14_p <- dabest_plot(D14_mean_diff, FALSE, raw_marker_spread = 0.4, raw_marker_size = 0.7, swarm_label = 'Population index')
+
+D14_p
+
+ggsave('D14.tif', height = 10, width = 12)
+
+#Get means
+D14_means <- summarySE(measurevar = 'No_worms', groupvars = c('Treatment','Population'), data = D14)
+
+D14_dab <-
+  D14_means %>%
+  load(x =Treatment, y =No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D14_mean_diff <- mean_diff(D14_dab)
+
+D14_means_p <- dabest_plot(D14_mean_diff, FALSE, raw_marker_spread = 1)
+
+D14_means_p
+
+## Day 21
+D21_dab <-
+  D21 %>%
+  load(x=Treatment, y =No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D21_mean_diff <- mean_diff(D21_dab)
+
+D21_p <- dabest_plot(D21_mean_diff, FALSE, raw_marker_spread = 0.4, raw_marker_size = 0.7, swarm_label = 'Population index')
+
+D21_p
+ggsave('D21.tif', height = 10, width = 12)
+#Get means
+
+
+D21 <- na.omit(D21)
+D21_means <- summarySE(D21, measurevar = 'No_worms', groupvars = c('Treatment','Population'))
+
+D21_dab <-
+  D21_means %>%
+  load(x = Treatment,y= No_worms,
+       idx = c('F','F+O','DR','DR+O'))
+
+D21_mean_diff <- mean_diff(D21_dab)
+
+D21_means_p <- dabest_plot(D21_mean_diff, FALSE, raw_marker_spread = 1)
+
+D21_means_p
+
+all_DR_plots <- ggarrange(D7_p, D14_p, D21_p,  ncol = 2, nrow = 2)
+
+all_DR_plots
+
+ggsave('all_DR_plots.tif', width = 16, height = 16, units = 'in')
+
+
+#Get means per population and per treatment
+DR <- na.omit(DR)
+DR_means_pop <- summarySE(DR, measurevar = 'No_worms', groupvars = c('Treatment','Population','Day'))
+DR_means <- summarySE(DR, measurevar = 'No_worms', groupvars = c('Treatment', 'Day'))
+
+#Function for population plots including raw data
+rawpop_plot_fun <- function(treat_means, pop_means){ggplot()+
+    geom_point(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 3)+
+    geom_line(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.5)+
+    geom_point(data = pop_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.5, alpha = 0.1)+
+    geom_errorbar(data = treat_means, aes(x= Day, ymin=No_worms-se, ymax=No_worms+se, colour = Treatment), width = 0.2, size = 1.1)+
+    ylab('Population index (~ 95% CI)\n')+
+    ylim(0, 400)+
+    xlab('\nSample Day')+
+    theme(legend.title = element_blank(),
+          legend.background = element_rect(fill = 'white', colour = 'white'),
+          legend.key = element_rect(fill ='white', colour = 'white'),
+          legend.text = element_text(size = (14), face = 'bold'),
+          legend.position = c(0.1, 0.9),
+          axis.title = element_text(size = (16)),
+          axis.text = element_text(size = (14)),
+          panel.background = element_rect(fill = 'white', colour = 'white'),   
+          panel.grid.major = element_line(colour = "white"), 
+          panel.grid.minor = element_line(colour = "white"),
+          axis.line = element_line(size = 0.5, linetype = "solid",colour = "black"))+
+    scale_color_manual( values = palette)+
+    scale_x_continuous(breaks=c(7,14, 21))
+  
+}
+
+
+#Function for population plots without raw data
+pop_plot_fun <- function(means, title){ggplot()+
+    geom_point(data = means, aes(x = Day, y = No_worms, colour = Treatment), size = 4)+
+    geom_line(data = means, aes(x = Day, y = No_worms, colour = Treatment), linewidth = 1.8)+
+    geom_errorbar(data = means, aes(x= Day, ymin=No_worms-(2*se), ymax=No_worms+(2*se), colour = Treatment), width = 0.2, linewidth = 1.1)+
+    ylab('Population index (~95% CI)')+
+    xlab('Sample day')+
+    labs(title = title)+
+    theme(plot.title = element_text(colour = 'grey50', size = (10)),
+          legend.title = element_blank(),
+          legend.background = element_rect(fill = 'white', colour = 'white'),
+          legend.key = element_rect(fill ='white', colour = 'white'),
+          legend.text = element_text(size = (16)),
+          legend.position = c(0.1, 0.9),
+          axis.title = element_text(size = (16)),
+          axis.text = element_text(size = (14)),
+          panel.background = element_rect(fill = 'white', colour = 'white'),   
+          panel.grid.major = element_line(colour = "white"), 
+          panel.grid.minor = element_line(colour = "white"),
+          axis.line = element_line(linewidth =  0.5, linetype = "solid",colour = "black"))+
+    scale_color_manual( values = palette)+
+    scale_x_continuous(breaks=c(7,14, 21))}
+
+DR_raw <- rawpop_plot_fun(DR_means, DR_means_pop)
+DR_raw
+ggsave('DR_pop_plot.tif', width = 10, height = 8)
+
+
+hist(DR$No_worms) #lots of zeroes
+
+DR_mod <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), data = DR, family = 'poisson')
+summary(DR_mod)
+DR_sim1 <- simulateResiduals(DR_mod, plot = T)
+
+DR_mod2 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), data = DR, family = 'nbinom2')
+summary(DR_mod2)
+AIC(DR_mod, DR_mod2)
+
+DR_sim2 <- simulateResiduals(DR_mod2, plot = T)
+testDispersion(DR_sim2)
+check_overdispersion(DR_sim2)
+testZeroInflation(DR_sim2)
+
+DR_mod3 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, data = DR, family = 'nbinom2')
+summary(DR_mod3)
+DR_sim3 <- simulateResiduals(DR_mod3, plot = T)
+testZeroInflation(DR_sim3)
+testDispersion(DR_sim3)
+
+
+DR_mod4 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block, data = DR, family = 'nbinom2')
+summary(DR_mod4)
+
+DR_sim4 <- simulateResiduals(DR_mod4, plot = T)
+testDispersion(DR_sim4)
+check_overdispersion(DR_mod4)
+
+AIC(DR_mod, DR_mod2, DR_mod3, DR_mod4)
+
+DR_mod5 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
+summary(DR_mod5)
+
+DR_sim5 <- simulateResiduals(DR_mod5, plot = T)
+testDispersion(DR_sim5)
+AIC(DR_mod4, DR_mod5)
+
+DR_mod6 <- update(DR_mod5, .~. -Treatment:Day:Block)
+AIC(DR_mod5, DR_mod6)
+
+DR_sim6 <- simulateResiduals(DR_mod6, plot= T)
+anova(DR_mod5, DR_mod6)#barely different - may keep it out for simplicity and interpretation
+summary(DR_mod6)
+
+DR_mod7 <- update(DR_mod6, .~. - Treatment:Block)
+AIC(DR_mod5, DR_mod6, DR_mod7)
+summary(DR_mod7)
