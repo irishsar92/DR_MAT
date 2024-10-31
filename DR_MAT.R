@@ -359,8 +359,6 @@ totrep_dab <-
   load(x =Treatment, y=Totrep,
        idx = c('F','F+O','DR','DR+O'))
 
-
-
 totrep_p <- mean_diff(totrep_dab)
 
 tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3')
