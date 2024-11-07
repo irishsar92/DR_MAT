@@ -52,7 +52,7 @@ palette <- c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')
 #use_github()
 
 R.version
-
+citation()
 
 
 # DRO Lifespan ------------------------------------------------------------
@@ -122,7 +122,7 @@ meforest <- function(cox, F){  #Eds version of forest plot
   return(forest)
 }
 
-
+??coxme
 cox <- coxme(Surv(Age, Event) ~ Treatment.ID +(1|Plate.ID), data = DRO_LS2)
 summary(cox)
 
@@ -278,29 +278,55 @@ pairs(emm_lam)
 rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8'))
 rep_long$Day <- as.numeric(rep_long$Day)
 
+rep_long$Day2 <- (rep_long$Day)^2
 
-rep_mod <- glmmTMB(value ~ Treatment * Day^2 + (1|ID), data = rep_long, family = 'poisson')
+rep_mod <- glmmTMB(value ~ Treatment * poly(Day,2)+ (1|ID), data = rep_long, family = 'poisson')
 summary(rep_mod)
 sim1 <- simulateResiduals(rep_mod, plot = T)
 testDispersion(sim1)
 check_overdispersion(rep_mod)
 testZeroInflation(rep_mod)
 
-rep_mod2 <- glmmTMB(value ~ Treatment * Day^2 + (1|ID), data = rep_long, ziformula = ~Day, family = 'poisson')
+rep_mod2 <- glmmTMB(value ~ Treatment * poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'poisson')
 summary(rep_mod2)
 sim2 <- simulateResiduals(rep_mod2, plot = T)
 AIC(rep_mod, rep_mod2)                  
+testDispersion(sim2)
+check_overdispersion(rep_mod2)
 
 rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
 
-
-rep_mod3 <- glmmTMB(value ~ Treatment * Day^2 + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+rep_mod3 <- glmmTMB(value ~ Treatment * Day2 + Day+ (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
 summary(rep_mod3)
-sim3 <- simulateResiduals(rep_mod3, plot = T)
-AIC(rep_mod, rep_mod2, rep_mod3)
-testDispersion(rep_mod3)
+
+rep_mod4 <- glmmTMB(value ~ Treatment * Day2 + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+
+rep_mod5 <- glmmTMB(value ~ Treatment * Day + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+AIC(rep_mod2, rep_mod3, rep_mod4, rep_mod5)
+summary(rep_mod5)
+sim5 <- simulateResiduals(rep_mod5, plot = T)
+testDispersion(sim5)
+check_overdispersion(rep_mod5)
 
 
+rep_mod6 <- glmmTMB(value ~ Treatment * poly(Day,2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+summary(rep_mod6)
+AIC(rep_mod5, rep_mod6)
+sim6 <- simulateResiduals(rep_mod6, plot = T)
+testDispersion(rep_mod6)
+
+
+rep_mod7<- glmmTMB(value ~ Treatment * Day2 + Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+summary(rep_mod7)
+check_overdispersion(rep_mod7)
+AIC(rep_mod6, rep_mod7)
+
+rep_mod8 <- glmmTMB(value ~ Treatment * Day2 + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+AIC(rep_mod6, rep_mod7, rep_mod8)
+
+rep_mod9 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+summary(rep_mod9)
+AIC(rep_mod6, rep_mod7, rep_mod8, rep_mod9)## use model 6
 # DRO Mated Reproduction --------------------------------------------------
 
 male_rep <- read.csv('Male_repro_DR.csv')
