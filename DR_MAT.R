@@ -806,7 +806,10 @@ binary_wide <- spread(binary, Day, Body)
 names(binary_wide) <- c('ID', 'Treatment', 'D2','D4')
 binary_wide
 
+
 binary_wide$Growth <- binary_wide$D4 - binary_wide$D2
+
+binary_wide <- binary_wide[binary_wide$Growth >= 0, ]
 
 binary_growth <- 
   binary_wide %>%
