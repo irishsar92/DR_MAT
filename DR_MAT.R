@@ -280,6 +280,9 @@ rep_long$Day <- as.numeric(rep_long$Day)
 
 rep_long$Day2 <- (rep_long$Day)^2
 
+rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
+
+
 rep_mod <- glmmTMB(value ~ Treatment * poly(Day,2)+ (1|ID), data = rep_long, family = 'poisson')
 summary(rep_mod)
 sim1 <- simulateResiduals(rep_mod, plot = T)
@@ -287,21 +290,20 @@ testDispersion(sim1)
 check_overdispersion(rep_mod)
 testZeroInflation(rep_mod)
 
-rep_mod2 <- glmmTMB(value ~ Treatment * poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'poisson')
+rep_mod2 <- glmmTMB(value ~ Treatment * poly(Day, 2) + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
 summary(rep_mod2)
 sim2 <- simulateResiduals(rep_mod2, plot = T)
 AIC(rep_mod, rep_mod2)                  
 testDispersion(sim2)
 check_overdispersion(rep_mod2)
 
-rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
-
 rep_mod3 <- glmmTMB(value ~ Treatment * Day2 + Day+ (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
 summary(rep_mod3)
 
 rep_mod4 <- glmmTMB(value ~ Treatment * Day2 + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+summary(rep_mod4)
 
-rep_mod5 <- glmmTMB(value ~ Treatment * Day + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson')
+rep_mod5 <- glmmTMB(value ~ Treatment * poly(Day) + (1|ID) + (1|OLRE), data = rep_long, ziformula = ~Day, family = 'poisson', control =glmmTMBControl(optimizer=optim, optArgs=list(method="CG")))
 AIC(rep_mod2, rep_mod3, rep_mod4, rep_mod5)
 summary(rep_mod5)
 sim5 <- simulateResiduals(rep_mod5, plot = T)
@@ -309,24 +311,42 @@ testDispersion(sim5)
 check_overdispersion(rep_mod5)
 
 
-rep_mod6 <- glmmTMB(value ~ Treatment * poly(Day,2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+rep_mod6 <- glmmTMB(value ~ Treatment * poly(Day,2) + (1|ID), data = rep_long, ziformula = ~poly(Day,2), family = 'nbinom2')
 summary(rep_mod6)
 AIC(rep_mod5, rep_mod6)
 sim6 <- simulateResiduals(rep_mod6, plot = T)
 testDispersion(rep_mod6)
+check_overdispersion(rep_mod6)
 
-
-rep_mod7<- glmmTMB(value ~ Treatment * Day2 + Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+rep_mod7 <- glmmTMB(value ~ Treatment* poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
 summary(rep_mod7)
-check_overdispersion(rep_mod7)
-AIC(rep_mod6, rep_mod7)
+sim7 <- simulateResiduals(rep_mod7, plot = T)
+anova(rep_mod6, rep_mod7)
+AIC(rep_mod, rep_mod7)
+testDispersion(sim7)
+testZeroInflation(sim7)
 
-rep_mod8 <- glmmTMB(value ~ Treatment * Day2 + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
-AIC(rep_mod6, rep_mod7, rep_mod8)
+rep_mod8 <- glmmTMB(value ~ Treatment*Day + I(Day^2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+summary(rep_mod8)
+AIC(rep_mod7, rep_mod8)#7 is better
 
-rep_mod9 <- glmmTMB(value ~ Treatment * Day + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+rep_mod9 <- glmmTMB(value ~ Treatment*Day + Treatment*I(Day^2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
+AIC(rep_mod7, rep_mod9)#7 is still better
 summary(rep_mod9)
-AIC(rep_mod6, rep_mod7, rep_mod8, rep_mod9)## use model 6
+
+rep_mod10 <- glmmTMB(value ~ Treatment* poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, disp = ~Day, family = 'nbinom2')
+AIC(rep_mod7, rep_mod10)
+summary(rep_mod10)
+sim10 <- simulateResiduals(rep_mod10, plot = T)
+testDispersion(rep_mod10) #10 is best
+
+rep_mod11 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ Day, disp = ~I(Day^2), family = 'nbinom2')
+AIC(rep_mod10, rep_mod11)
+summary(rep_mod11)
+
+
+#rep_mod12 <- glmmTMB(value ~ Treatment*poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'compois')
+
 # DRO Mated Reproduction --------------------------------------------------
 
 male_rep <- read.csv('Male_repro_DR.csv')
@@ -1035,11 +1055,13 @@ ggsave('DR_pop_plot.tif', width = 10, height = 8)
 
 hist(DR$No_worms) #lots of zeroes
 
-DR_mod <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), data = DR, family = 'poisson')
+DR_mod <- glmmTMB(No_worms ~ Treatment * poly(Day,2) * Block + (1|Population/Rep), data = DR, family = 'poisson')
 summary(DR_mod)
 DR_sim1 <- simulateResiduals(DR_mod, plot = T)
+testDispersion(DR_sim1)
+testZeroInflation(DR_sim1)
 
-DR_mod2 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), data = DR, family = 'nbinom2')
+DR_mod2 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) * Block + (1|Population/Rep), data = DR, family = 'nbinom2')
 summary(DR_mod2)
 AIC(DR_mod, DR_mod2)
 
@@ -1048,14 +1070,14 @@ testDispersion(DR_sim2)
 check_overdispersion(DR_sim2)
 testZeroInflation(DR_sim2)
 
-DR_mod3 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, data = DR, family = 'nbinom2')
+DR_mod3 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) * Block + (1|Population/Rep), ziformula = ~ Day, data = DR, family = 'nbinom2')
 summary(DR_mod3)
 DR_sim3 <- simulateResiduals(DR_mod3, plot = T)
 testZeroInflation(DR_sim3)
 testDispersion(DR_sim3)
 
 
-DR_mod4 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block, data = DR, family = 'nbinom2')
+DR_mod4 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block, data = DR, family = 'nbinom2')
 summary(DR_mod4)
 
 DR_sim4 <- simulateResiduals(DR_mod4, plot = T)
@@ -1064,20 +1086,58 @@ check_overdispersion(DR_mod4)
 
 AIC(DR_mod, DR_mod2, DR_mod3, DR_mod4)
 
-DR_mod5 <- glmmTMB(No_worms ~ Treatment * Day * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
+DR_mod5 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) * Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
 summary(DR_mod5)
 
 DR_sim5 <- simulateResiduals(DR_mod5, plot = T)
 testDispersion(DR_sim5)
 AIC(DR_mod4, DR_mod5)
 
-DR_mod6 <- update(DR_mod5, .~. -Treatment:Day:Block)
-AIC(DR_mod5, DR_mod6)
+DR_mod6 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) + Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
+summary(DR_mod6)
+AIC(DR_mod4, DR_mod6)
 
 DR_sim6 <- simulateResiduals(DR_mod6, plot= T)
-anova(DR_mod5, DR_mod6)#barely different - may keep it out for simplicity and interpretation
+anova(DR_mod4, DR_mod6)#barely different - may keep it out for simplicity and interpretation - AIC shows little change
 summary(DR_mod6)
 
-DR_mod7 <- update(DR_mod6, .~. - Treatment:Block)
+DR_mod7 <- glmmTMB(No_worms ~ Treatment*I(Day^2)*Block+Treatment*Day + (1|Population/Rep), ziformula =~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
 AIC(DR_mod5, DR_mod6, DR_mod7)
 summary(DR_mod7)
+pred_7 <- predict_response(DR_mod7, terms = c("Day", "Treatment"))
+ggplot(pred_7, aes(x = x, y = predicted, colour = group)) +
+  geom_line() 
+
+DR_mod8 <- glmmTMB(No_worms ~ Treatment*I(Day^2)*Block+Day + (1|Population/Rep), ziformula =~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod7, DR_mod8)
+summary(DR_mod8)
+pred_7 <- predict_response(DR_mod7, terms = c("Day [all]", "Treatment"))
+ggplot(pred_7, aes(x = x, y = predicted, colour = group)) +
+  geom_line()
+
+
+DR_mod8 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod7, DR_mod8)
+summary(DR_mod8)
+pred_8 <- predict_response(DR_mod8, terms = c("Day [all]", "Treatment"))
+ggplot(pred_8, aes(x = x, y = predicted, colour = group)) +
+  geom_line()
+
+
+######## Extra models below that didn't work as well
+
+DR_mod9 <- glmmTMB(No_worms ~ Treatment*I(Day^2) + Day + Block +(1|Population/Rep), ziformula = ~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod8, DR_mod9)
+summary(DR_mod9)
+anova(DR_mod8, DR_mod9)
+
+DR_mod10 <- glmmTMB(No_worms ~ Treatment*I(Day^2) + Block +(1|Population/Rep), ziformula = ~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod8, DR_mod9, DR_mod10)
+
+DR_mod11 <- glmmTMB(No_worms ~ Treatment*Day + I(Day^2) + Block + (1|Population/Rep), ziformula = ~Day, dispformula = ~Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod8, DR_mod9, DR_mod11)
+summary(DR_mod11)
+
+DR_mod12 <- glmmTMB(No_worms ~ Treatment + I(Day^2) + Day + Block + (1|Population/Rep), ziformula = ~Treatment, dispformula =~Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod12)
+summary(DR_mod12)
