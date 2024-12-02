@@ -1170,27 +1170,58 @@ ggplot(pred_7, aes(x = x, y = predicted, colour = group)) +
 
 
 DR_mod8 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
-AIC(DR_mod7, DR_mod8)
+AIC(DR_mod16, DR_mod8)
 summary(DR_mod8)
 pred_8 <- predict_response(DR_mod8, terms = c("Day [all]", "Treatment"))
 ggplot(pred_8, aes(x = x, y = predicted, colour = group)) +
+  geom_line() #predicts really well
+
+
+DR_mod9 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod8, DR_mod9)#8 is very slightly better and less complex, so stick with 8
+
+DR_mod10 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Block*Day, data = DR, family = 'nbinom2')
+AIC(DR_mod10, DR_mod9)
+
+DR_mod11 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*Day*Block, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod10) #11 is better
+summary(DR_mod11)
+
+DR_mod12 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*Day, data = DR, family = 'nbinom2')
+AIC(DR_mod12, DR_mod11)#11 is better
+
+DR_mod13 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*Block, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod13)
+
+
+DR_mod14 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment+Block+Day, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod14)
+
+DR_mod15 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*Day+Block, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod15)
+
+DR_mod16 <- glmmTMB(No_worms ~Treatment+I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*Day*Block, data = DR, family = 'nbinom2')
+AIC(DR_mod11, DR_mod16)
+
+pred_16 <- predict_response(DR_mod16, terms = c("Day [all]", "Treatment"))
+ggplot(pred_16, aes(x = x, y = predicted, colour = group)) +
+  geom_line() 
+
+
+DR_mod17 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*I(Day^2)*Block, data = DR, family = 'nbinom2')
+AIC(DR_mod17, DR_mod16)
+summary(DR_mod17)
+pred_17 <- predict_response(DR_mod17, terms = c("Day [all]", "Treatment"))
+ggplot(pred_17, aes(x = x, y = predicted, colour = group)) +
   geom_line()
 
 
-######## Extra models below that didn't work as well
+DR_mod18 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*I(Day^2)+Block, data = DR, family = 'nbinom2')
+AIC(DR_mod18, DR_mod17)#17 is better
 
-DR_mod9 <- glmmTMB(No_worms ~ Treatment*I(Day^2) + Day + Block +(1|Population/Rep), ziformula = ~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
-AIC(DR_mod8, DR_mod9)
-summary(DR_mod9)
-anova(DR_mod8, DR_mod9)
+DR_mod19 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment+I(Day^2)+Block, data = DR, family = 'nbinom2')
+AIC(DR_mod19, DR_mod18)
 
-DR_mod10 <- glmmTMB(No_worms ~ Treatment*I(Day^2) + Block +(1|Population/Rep), ziformula = ~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
-AIC(DR_mod8, DR_mod9, DR_mod10)
-
-DR_mod11 <- glmmTMB(No_worms ~ Treatment*Day + I(Day^2) + Block + (1|Population/Rep), ziformula = ~Day, dispformula = ~Block+Day, data = DR, family = 'nbinom2')
-AIC(DR_mod8, DR_mod9, DR_mod11)
-summary(DR_mod11)
-
-DR_mod12 <- glmmTMB(No_worms ~ Treatment + I(Day^2) + Day + Block + (1|Population/Rep), ziformula = ~Treatment, dispformula =~Block+Day, data = DR, family = 'nbinom2')
-AIC(DR_mod11, DR_mod12)
-summary(DR_mod12)
+DR_mod20 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment+I(Day^2)*Block, data = DR, family = 'nbinom2')
+AIC(DR_mod17, DR_mod20)
+#### Still stick with 17
