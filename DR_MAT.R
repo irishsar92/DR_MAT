@@ -322,30 +322,38 @@ rep_mod7 <- glmmTMB(value ~ Treatment* poly(Day, 2) + (1|ID), data = rep_long, z
 summary(rep_mod7)
 sim7 <- simulateResiduals(rep_mod7, plot = T)
 anova(rep_mod6, rep_mod7)
-AIC(rep_mod, rep_mod7)
+AIC(rep_mod6, rep_mod7)
 testDispersion(sim7)
 testZeroInflation(sim7)
 
 rep_mod8 <- glmmTMB(value ~ Treatment*Day + I(Day^2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
 summary(rep_mod8)
-AIC(rep_mod7, rep_mod8)#7 is better
+AIC(rep_mod6, rep_mod8)#6 is better
 
 rep_mod9 <- glmmTMB(value ~ Treatment*Day + Treatment*I(Day^2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'nbinom2')
-AIC(rep_mod7, rep_mod9)#7 is still better
+AIC(rep_mod6, rep_mod9)#6 is still better
 summary(rep_mod9)
 
-rep_mod10 <- glmmTMB(value ~ Treatment* poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, disp = ~Day, family = 'nbinom2')
-AIC(rep_mod7, rep_mod10)
+rep_mod10 <- glmmTMB(value ~ Treatment* poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~poly(Day,2), disp = ~Treatment*poly(Day,2), family = 'nbinom2')
+AIC(rep_mod6, rep_mod10)
 summary(rep_mod10)
 sim10 <- simulateResiduals(rep_mod10, plot = T)
 testDispersion(rep_mod10) #10 is best
 
-rep_mod11 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ Day, disp = ~I(Day^2), family = 'nbinom2')
+rep_mod11 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ poly(Day,2), disp = ~Treatment*I(Day^2), family = 'nbinom2')
 AIC(rep_mod10, rep_mod11)
 summary(rep_mod11)
 
+rep_mod12 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ poly(Day,2), disp = ~Treatment*Day, family = 'nbinom2')
+AIC(rep_mod10, rep_mod12)
 
-#rep_mod12 <- glmmTMB(value ~ Treatment*poly(Day, 2) + (1|ID), data = rep_long, ziformula = ~Day, family = 'compois')
+rep_mod13 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ poly(Day,2), disp = ~Treatment+poly(Day,2), family = 'nbinom2')
+AIC(rep_mod10, rep_mod13)
+summary(rep_mod13)
+
+rep_mod14 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, ziformula = ~ poly(Day,2), disp = ~Treatment+I(Day^2), family = 'nbinom2')
+AIC(rep_mod13, rep_mod14)
+###stick with mod13
 
 # DRO Mated Reproduction --------------------------------------------------
 
@@ -489,14 +497,14 @@ rep_long$Day <- as.numeric(rep_long$Day)
 
 hist(rep_long$value)
 
-mated_mod <- glmmTMB(value ~ Treatment*Day^2 + (1|ID), data = rep_long, family = 'poisson')
+mated_mod <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, family = 'poisson')
 summary(mated_mod)
 sim_mat <- simulateResiduals(mated_mod, plot = T)
 testDispersion(sim_mat)
 testZeroInflation(sim_mat)
 check_overdispersion(mated_mod)
 
-mated_mod2 <- glmmTMB(value ~ Treatment*Day^2 + (1|ID), ziformula = ~Day^2, data = rep_long, family = 'poisson')
+mated_mod2 <- glmmTMB(value ~ Treatment*poly(Day, 2) + (1|ID), ziformula = ~poly(Day,2), data = rep_long, family = 'poisson')
 summary(mated_mod2)
 sim_mat2 <- simulateResiduals(mated_mod2, plot = T)
 AIC(mated_mod2, mated_mod)
@@ -506,12 +514,57 @@ check_overdispersion(mated_mod2)
 
 rep_long <- tibble::rowid_to_column(rep_long, "OLRE")
 
-mated_mod3 <- glmmTMB(value ~ Treatment*(Day^2) + (1|ID) + (1|OLRE), ziformula = ~Day^2, data = rep_long, family = 'poisson')
+mated_mod3 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID) + (1|OLRE), ziformula = ~poly(Day,2), data = rep_long, family = 'poisson')
 summary(mated_mod3)    
 sim_mat3 <- simulateResiduals(mated_mod3, plot = T)
 AIC(mated_mod2, mated_mod3)
 testDispersion(sim_mat3)
 testZeroInflation(sim_mat3)
+
+mated_mod4 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID) + (1|OLRE), ziformula = ~poly(Day,2), data = rep_long, family = 'nbinom2')
+summary(mated_mod4)
+AIC(mated_mod3, mated_mod4)
+testDispersion(mated_mod4)
+
+mated_mod5 <- glmmTMB(value ~ Treatment*poly(Day^2)+ (1|ID) + (1|OLRE), ziformula = ~I(Day^2), data = rep_long, family = 'nbinom2')
+AIC(mated_mod4, mated_mod5)
+
+
+mated_mod6 <- glmmTMB(value ~ Treatment*poly(Day^2)+ (1|ID) + (1|OLRE), ziformula = ~Day, data = rep_long, family = 'nbinom2')
+AIC(mated_mod6, mated_mod4)###4 is still better
+
+
+mated_mod7 <- glmmTMB(value ~ Treatment*poly(Day^2)+ (1|ID) + (1|OLRE), ziformula = ~Treatment*Day, data = rep_long, family = 'nbinom2')
+AIC(mated_mod7, mated_mod4)
+
+mated_mod8 <- glmmTMB(value ~ Treatment*poly(Day^2)+ (1|ID) + (1|OLRE), ziformula = ~Treatment+Day, data = rep_long, family = 'nbinom2')
+AIC(mated_mod8, mated_mod4)### 4 is still better
+
+
+mated_mod9 <- glmmTMB(value ~ Treatment*poly(Day,2)+ (1|ID), ziformula = ~poly(Day,2), disp = ~ Treatment*poly(Day,2), data = rep_long, family = 'nbinom2')
+AIC(mated_mod4, mated_mod9)
+sim9 <- simulateResiduals(mated_mod9, plot = T)
+testDispersion(sim9)
+summary(mated_mod9)
+
+
+mated_mod10 <- glmmTMB(value ~ Treatment*poly(Day,2)+ (1|ID), ziformula = ~poly(Day,2), disp = ~ Treatment+poly(Day,2), data = rep_long, family = 'nbinom2')
+AIC(mated_mod10, mated_mod9)
+sim10 <- simulateResiduals(mated_mod10, plot = T)
+testDispersion(sim10)
+summary(mated_mod10)
+
+
+mated_mod11 <- glmmTMB(value ~ Treatment*poly(Day,2)+ (1|ID), ziformula = ~poly(Day,2), disp = ~ Treatment+I(Day^2), data = rep_long, family = 'nbinom2')
+AIC(mated_mod10, mated_mod11)
+
+
+mated_mod12 <- glmmTMB(value ~ Treatment*poly(Day,2)+ (1|ID), ziformula = ~poly(Day,2), disp = ~ Treatment*I(Day^2), data = rep_long, family = 'nbinom2')
+AIC(mated_mod12, mated_mod11)
+summary(mated_mod12)
+sim12 <- simulateResiduals(mated_mod12, plot=T)
+testDispersion(sim12)
+
 
 
 
