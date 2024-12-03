@@ -63,13 +63,17 @@ DRO_LS$Treatment.ID <- as.factor(DRO_LS$Treatment.ID)
 DRO_LS$Treatment.ID <- droplevels(DRO_LS$Treatment.ID)
 levels(DRO_LS$Treatment.ID)
 
+
+DRO_LS$Treatment.ID <- relevel(DRO_LS$Treatment.ID, ref = 'F')
+
 DRO_LS2 <- DRO_LS %>%
   filter(DRO_LS$Cause != 'L' & DRO_LS$Cause !='W' & DRO_LS$Cause != 'E')
+
 
 surv<-survfit(Surv(Age,Event)~Treatment.ID,data=DRO_LS2)
 
 
-LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, palette = palette, position= position_dodge(0.9), font.tickslab = c(14), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.legend = c(16))
+LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("F" ,"DR", "DR+O","F+O"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
 LS_plot
 
 DRO_LS3 <- DRO_LS2 %>%
@@ -77,7 +81,7 @@ DRO_LS3 <- DRO_LS2 %>%
 
 surv<-survfit(Surv(Age,Event)~Treatment.ID,data=DRO_LS3)
 
-LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.tickslab = c(14), font.legend = c(16))
+LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("F" ,"DR", "DR+O","F+O"), font.tickslab = c(14), font.legend = c(16), font.title = c(16))
 LS_plot_matcen
 
 DRO_LS3$Treatment.ID <- as.factor(DRO_LS3$Treatment.ID)
@@ -117,12 +121,11 @@ meforest <- function(cox, F){  #Eds version of forest plot
       axis.text = element_text(size = 18),
       axis.title = element_text(size = 20)
     )+
-    scale_y_discrete(limits = (levels(store$Treatment)), labels = c('TreatmentDR'='DR', 'TreatmentDRO' = 'DR+O', 'TreatmentF' ='F', 'TreatmentFO' ='F+O'))+
+    scale_y_discrete(limits = (levels(store$Treatment)), labels = c('Treatment.IDDR'='DR', 'Treatment.IDDRO' = 'DR+O', 'Treatment.IDF' ='F', 'Treatment.IDFO' ='F+O'))+
     expand_limits(x = c(-1.5,0.5))
   return(forest)
 }
 
-??coxme
 cox <- coxme(Surv(Age, Event) ~ Treatment.ID +(1|Plate.ID), data = DRO_LS2)
 summary(cox)
 
@@ -141,7 +144,7 @@ pairs(emm_cox_matcen)
 forest_matcen <- meforest(cox_matcen, 'F')
 forest_matcen
 
-DR_all_plot <- ggarrange(LS_plot$plot, LS_plot_matcen$plot, forest, forest_matcen, nrow = 2, ncol = 2,heights = c(2, 1))
+DR_all_plot <- ggarrange(LS_plot$plot, LS_plot_matcen$plot, forest, forest_matcen, common.legend = T, nrow = 2, ncol = 2,heights = c(2, 1), labels = c('A', 'B'))
 DR_all_plot
 ggsave('DR_all_plot.tif', height = 8, width = 12)
 
@@ -173,6 +176,7 @@ rep_long$Treatment <- factor(rep_long$Treatment, levels = c('F','FO','DR','DRO')
 
 rep_long$Treatment <- revalue(rep_long$Treatment, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
 
+
 ## Age-specific reproduction plot
 rep <-ggplot(data=rep_long, aes(x=factor(Day), y=value, group=Treatment, color=Treatment))+
   geom_jitter(alpha = 0.2, position = position_jitterdodge(jitter.width = 0.2, dodge.width = 0.5))+
@@ -180,10 +184,12 @@ rep <-ggplot(data=rep_long, aes(x=factor(Day), y=value, group=Treatment, color=T
   stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
   stat_summary(fun.data="mean_cl_boot", geom="line",  size=1, position = position_dodge(0.5)) +
   theme_classic()+
-  labs(y="Offspring number", x="", size=20)+
+  labs(y="Offspring number", x="", size=14)+
   labs(col="")+
-  theme(axis.title.y = element_text(size=12))+
-  theme(axis.title.x = element_text(size=12))+
+  theme(axis.title.y = element_text(size=14))+
+  theme(axis.title.x = element_text(size=14))+
+  theme(axis.text = element_text(size = 12))+
+  theme(legend.text = element_text(size = 12))+
   theme(legend.key.width = unit(0.5,"cm"))+
   coord_cartesian(ylim = c(0,170))+
   theme(legend.position = c(0.8,0.9))+
@@ -206,7 +212,7 @@ totrep_dab <-
 
 totrep_p <- mean_diff(totrep_dab)
 
-tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3')
+tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1 )
 
 tot_rep_plot
 
@@ -257,13 +263,22 @@ Lambda_rep <-
 
 Lambda_rep_dab <- mean_diff(Lambda_rep)
 
-lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3')
+
+lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
 lam_plot
 
 rep/(tot_rep_plot+lam_plot)
 
-ggsave('DRO_reproduction.tif', height = 8, width = 10)
+bottom <- ggarrange(tot_rep_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), lam_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2, labels = c('B', 'C'))
+
+DR_rep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'))
+
+
+DR_rep_plot
+ggsave('DRO_rep_plot.tif', height = 10, width = 8)
+
+
 
 hist(Data$Lambda)#distribution is a bit bimodal, but try linear model
 lam_mod <- lm(Lambda ~ Treatment, data = Data)
@@ -355,6 +370,11 @@ rep_mod14 <- glmmTMB(value ~ Treatment*poly(Day,2) + (1|ID), data = rep_long, zi
 AIC(rep_mod13, rep_mod14)
 ###stick with mod13
 
+
+
+
+
+
 # DRO Mated Reproduction --------------------------------------------------
 
 male_rep <- read.csv('Male_repro_DR.csv')
@@ -390,10 +410,12 @@ rep <-ggplot(data=rep_long, aes(x=factor(Day), y=value, group=Treatment, color=T
   stat_summary(fun.data="mean_cl_boot", geom="point", size = 3, position = position_dodge(0.5)) +
   stat_summary(fun.data="mean_cl_boot", geom="line",  size=1, position = position_dodge(0.5)) +
   theme_classic()+
-  labs(y="Offspring number", x="", size=20)+
+  labs(y="Offspring number", x="", size=16)+
   labs(col="")+
-  theme(axis.title.y = element_text(size=12))+
-  theme(axis.title.x = element_text(size=12))+
+  theme(axis.title.y = element_text(size=14))+
+  theme(axis.title.x = element_text(size=14))+
+  theme(axis.text = element_text(size = 12))+
+  theme(legend.text = element_text(size = 12))+
   theme(legend.key.width = unit(0.5,"cm"))+
   coord_cartesian(ylim = c(0,170))+
   theme(legend.position = c(0.8,0.9))+
@@ -415,7 +437,7 @@ totrep_dab <-
 
 totrep_p <- mean_diff(totrep_dab)
 
-tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3')
+tot_rep_plot <- dabest_plot(totrep_p, FALSE, raw_marker_spread = 1, swarm_label = 'LRS',custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
 tot_rep_plot
 
@@ -481,13 +503,18 @@ Lambda_rep <-
 
 Lambda_rep_dab <- mean_diff(Lambda_rep)
 
-lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3')
+lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
 lam_plot
 
 rep/(tot_rep_plot + lam_plot)
 
-ggsave('DRO_male_reproduction.tif', height = 8, width = 10)
+
+bottom <- ggarrange(tot_rep_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), lam_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2, labels = c('B', 'C'))
+
+DR_malerep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'), heights = c(1.3, 1))
+
+ggsave('DRO_male_reproduction.tif', height = 10, width = 8)
 
 
 #Analyse age-specific reproduction 
@@ -777,7 +804,7 @@ Egg_d4 <-
 
 Egg_d4_dab <- mean_diff(Egg_d4)
 
-Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = '', contrast_label = '', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3)
 
 Egg_d4_plot
 
@@ -791,22 +818,15 @@ Egg_d2 <-
 
 Egg_d2_dab <- mean_diff(Egg_d2)
 
-Egg_d2_plot <- dabest_plot(Egg_d2_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+Egg_d2_plot <- dabest_plot(Egg_d2_dab, FALSE, swarm_label = expression('Area mm'^2), raw_marker_spread = 1.2, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3)
 
 Egg_d2_plot
 
-egg_plots <- ggarrange(Egg_d2_plot, Egg_d4_plot, ncol = 2, nrow = 1)
+egg_plots <- ggarrange(Egg_d2_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), labels = c('A', 'B'), Egg_d4_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2)
 
 egg_plots
 
-cowplot::plot_grid(
-  plotlist = list(Egg_d2_plot, Egg_d4_plot),
-  nrow = 1,
-  ncol = 2,
-  labels = c('.                             D2 Egg Size','.                            D4 Egg Size ')
-)
-
-ggsave('egg.tif', height = 8, width = 10)
+ggsave('egg.tif', height = 4, width = 8)
 
 
 head(egg)
@@ -840,7 +860,7 @@ Binary <-
 
 Binary_dab <- mean_diff(Binary)
 
-Binary_plot <- dabest_plot(Binary_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+Binary_plot <- dabest_plot(Binary_dab, FALSE, swarm_label = expression('Area mm'^2), raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
 Binary_plot
 
@@ -891,7 +911,7 @@ binary_growth <-
 
 binary_growth_dab <- mean_diff(binary_growth)
 
-binary_growth_plot <- dabest_plot(binary_growth_dab, FALSE, swarm_label = 'Area (mm^2)', raw_marker_spread = 1, custom_palette = 'd3')
+binary_growth_plot <- dabest_plot(binary_growth_dab, FALSE, swarm_label = expression('Area mm'^2), raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
 binary_growth_plot
 
@@ -902,19 +922,22 @@ binary_means$Day <- as.factor(binary_means$Day)
 
 growth_plot <- ggplot()+
   geom_point(data = binary_means, aes(x = Day, colour = Treatment, y = Body), position = position_dodge(width = 0.5), size = 3)+
-  geom_errorbar(data = binary_means, aes(x = Day, colour = Treatment, ymin = Body - 2*se, ymax = Body + 2*se), position = position_dodge(width = 0.5), size = 1.5, width = 0.2)+
-  geom_point(data = binary, aes(x = Day, colour = Treatment, y = Body), size = 2, alpha = 0.5, position = position_dodge(width = 0.5))+
+  geom_errorbar(data = binary_means, aes(x = Day, colour = Treatment, ymin = Body - 2*se, ymax = Body + 2*se), position = position_dodge(width = 0.5), size = 1.2, width = 0.2)+
+  geom_point(data = binary, aes(x = Day, colour = Treatment, y = Body), size = 2, alpha = 0.3, position = position_jitterdodge(dodge.width = 0.5, jitter.width = 0.15))+
   geom_line(data = binary_means, aes(x = Day, colour = Treatment, y = Body, group = Treatment), position = position_dodge(width = 0.5), size = 1.5)+
   theme_classic()+
-  labs(y ='Area (mm^2)', x = '')+
+  labs(y =expression('Area mm'^2), x = '')+
   theme(axis.title.y = element_text(size=14), axis.text.y = element_text(size = 12))+
   theme(axis.title.x = element_text(size=14), axis.text.x = element_text(size = 12), legend.text = element_text(size = 12), legend.title = element_text(size = 12), legend.position = 'top')+
   scale_color_manual(values = palette)+
   scale_x_discrete(labels = c('2' = 'Day 2', '4' = 'Day 4'))
 
+
 growth_plot
 
-growth_plot + binary_growth_plot
+growth_plots <- ggarrange(growth_plot+theme(plot.margin = unit(c(0,2,20,1), 'pt')), labels = c('A', 'B'), binary_growth_plot+theme(plot.margin = unit(c(0,2,0,1), 'pt')), ncol = 2, common.legend = TRUE, widths = c(1.2, 1))
+
+growth_plots
 
 ggsave('growth.tif', height = 6, width = 10)
 
@@ -1064,7 +1087,7 @@ rawpop_plot_fun <- function(treat_means, pop_means){ggplot()+
     theme(legend.title = element_blank(),
           legend.background = element_rect(fill = 'white', colour = 'white'),
           legend.key = element_rect(fill ='white', colour = 'white'),
-          legend.text = element_text(size = (14), face = 'bold'),
+          legend.text = element_text(size = (14)),
           legend.position = c(0.1, 0.9),
           axis.title = element_text(size = (16)),
           axis.text = element_text(size = (14)),
