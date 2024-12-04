@@ -53,7 +53,7 @@ palette <- c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')
 
 R.version
 citation()
-
+citation('emmeans')
 
 # DRO Lifespan ------------------------------------------------------------
 
@@ -772,14 +772,17 @@ levels(DR_HS$Treatment)
 surv<-survfit(Surv(Age,Event)~Treatment,data=DR_HS)
 summary(surv)
 surv <- na.omit(surv)
-HS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DR_HS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.9), legend.title = "", palette = palette, title = "", censor = FALSE, xlab = "\nHour                                                 Day", xlim=c(0,15), break.time.by = 2, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16))
+HS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DR_HS, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.8, 0.9), legend.title = "", palette = palette, title = "", censor = FALSE, xlab = "\nHour                                        Day", xlim=c(0,21), break.time.by = 2, position= position_dodge(0.9), font.tickslab = c(14), font.legend = c(16), legend.labs = c('F', 'F+O', 'DR', 'DR+O'))
 
 HS_plot <- HS_plot$plot + geom_vline(xintercept = 9, linetype = 'dashed', colour = 'red', size = 1)
 
-DR_HS_plot <- ggarrange(HS_plot, forest_HS, nrow = 2, ncol = 1,heights = c(2, 1))
+HS_plot <- HS_plot + scale_x_continuous(breaks = c(1,3,5,7,9,11,13,15,17,19,21),
+                             labels = c(1,3,5,7,9,2,4,6,8,10,12))
+
+DR_HS_plot <- ggarrange(HS_plot, forest_HS, nrow = 2, ncol = 1,heights = c(1.8, 1))
 DR_HS_plot
 
-ggsave('DR_HS_plot.tif', height = 12, width = 10)
+ggsave('DR_HS_plot.tif', height = 8, width = 8)
 
 
 
@@ -978,6 +981,7 @@ D14 <- DR %>%
 D21 <- DR %>%
   filter(Day == 21)
 
+range(DR$No_worms)
 ## Day 7
 
 D7_dab <- 
@@ -1075,20 +1079,38 @@ DR <- na.omit(DR)
 DR_means_pop <- summarySE(DR, measurevar = 'No_worms', groupvars = c('Treatment','Population','Day'))
 DR_means <- summarySE(DR, measurevar = 'No_worms', groupvars = c('Treatment', 'Day'))
 
+DR_B1 <- DR %>%
+  filter(Block == 1)
+B1_means_pop <- summarySE(DR_B1, measurevar = 'No_worms', groupvars = c('Treatment','Population','Day'))
+B1_means <- summarySE(DR_B1, measurevar = 'No_worms', groupvars = c('Treatment','Day'))
+
+
+DR_B2 <- DR %>%
+  filter(Block == 2)
+B2_means_pop <- summarySE(DR_B2, measurevar = 'No_worms', groupvars = c('Treatment','Population','Day'))
+B2_means <- summarySE(DR_B2, measurevar = 'No_worms', groupvars = c('Treatment','Day'))
+
+
+DR_B3 <- DR %>%
+  filter(Block == 3)
+B3_means_pop <- summarySE(DR_B3, measurevar = 'No_worms', groupvars = c('Treatment','Population','Day'))
+B3_means <- summarySE(DR_B3, measurevar = 'No_worms', groupvars = c('Treatment','Day'))
+
+range(DR_means_pop$No_worms)
 #Function for population plots including raw data
 rawpop_plot_fun <- function(treat_means, pop_means){ggplot()+
-    geom_point(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 3)+
-    geom_line(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.5)+
-    geom_point(data = pop_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.5, alpha = 0.1)+
-    geom_errorbar(data = treat_means, aes(x= Day, ymin=No_worms-se, ymax=No_worms+se, colour = Treatment), width = 0.2, size = 1.1)+
+    geom_point(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 2.25, position = position_dodge(width = 1.2))+
+    geom_line(data = treat_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.1, position = position_dodge(width = 1.2))+
+    geom_point(data = pop_means, aes(x = Day, y = No_worms, colour = Treatment), size = 1.5, alpha = 0.1, position = position_jitterdodge(dodge.width = 1.2, jitter.width = 0.2))+
+    geom_errorbar(data = treat_means, aes(x= Day, ymin=No_worms-se, ymax=No_worms+se, colour = Treatment), width = 0.2, size = 1.1, position = position_dodge(width = 1.2))+
     ylab('Population index (~ 95% CI)\n')+
-    ylim(0, 400)+
-    xlab('\nSample Day')+
+    ylim(0, 475)+
+    xlab('\nSample day')+
     theme(legend.title = element_blank(),
           legend.background = element_rect(fill = 'white', colour = 'white'),
           legend.key = element_rect(fill ='white', colour = 'white'),
           legend.text = element_text(size = (14)),
-          legend.position = c(0.1, 0.9),
+          legend.position = 'top',
           axis.title = element_text(size = (16)),
           axis.text = element_text(size = (14)),
           panel.background = element_rect(fill = 'white', colour = 'white'),   
@@ -1103,9 +1125,9 @@ rawpop_plot_fun <- function(treat_means, pop_means){ggplot()+
 
 #Function for population plots without raw data
 pop_plot_fun <- function(means, title){ggplot()+
-    geom_point(data = means, aes(x = Day, y = No_worms, colour = Treatment), size = 4)+
-    geom_line(data = means, aes(x = Day, y = No_worms, colour = Treatment), linewidth = 1.8)+
-    geom_errorbar(data = means, aes(x= Day, ymin=No_worms-(2*se), ymax=No_worms+(2*se), colour = Treatment), width = 0.2, linewidth = 1.1)+
+    geom_point(data = means, aes(x = Day, y = No_worms, colour = Treatment), size = 4, position = position_dodge(width = 0.5))+
+    geom_line(data = means, aes(x = Day, y = No_worms, colour = Treatment), linewidth = 1.8, position = position_dodge(width = 0.5))+
+    geom_errorbar(data = means, aes(x= Day, ymin=No_worms-(2*se), ymax=No_worms+(2*se), colour = Treatment), width = 0.2, linewidth = 1.1, position = position_jitterdodge(dodge.width = 0.5, jitter.width = 0.2))+
     ylab('Population index (~95% CI)')+
     xlab('Sample day')+
     labs(title = title)+
@@ -1114,7 +1136,7 @@ pop_plot_fun <- function(means, title){ggplot()+
           legend.background = element_rect(fill = 'white', colour = 'white'),
           legend.key = element_rect(fill ='white', colour = 'white'),
           legend.text = element_text(size = (16)),
-          legend.position = c(0.1, 0.9),
+          legend.position = 'bottom',
           axis.title = element_text(size = (16)),
           axis.text = element_text(size = (14)),
           panel.background = element_rect(fill = 'white', colour = 'white'),   
@@ -1126,7 +1148,42 @@ pop_plot_fun <- function(means, title){ggplot()+
 
 DR_raw <- rawpop_plot_fun(DR_means, DR_means_pop)
 DR_raw
-ggsave('DR_pop_plot.tif', width = 10, height = 8)
+ggsave('DR_pop_plot.tif', width = 7, height = 10)
+
+B1_raw <- rawpop_plot_fun(B1_means, B1_means_pop)
+B1_raw <- B1_raw+ylim(0,450)
+B1_raw
+ggsave('B1_pop_plot.tif', width = 4, height = 5)
+
+
+B2_raw <- rawpop_plot_fun(B2_means, B2_means_pop)
+B2_raw <- B2_raw+ylim(0, 115)
+B2_raw
+ggsave('B2_pop_plot.tif', width = 4, height = 5)
+
+
+B3_raw <- rawpop_plot_fun(B3_means, B3_means_pop)
+B3_raw <- B3_raw+ylim(0,360)
+B3_raw
+ggsave('B3_pop_plot.tif', width = 4, height = 5)
+
+
+blocks <- ggarrange(B1_raw +rremove('axis.title')+rremove('legend')+theme(plot.margin = unit(c(0,0,0,20), 'pt')), B2_raw +rremove('legend')+rremove('axis.title')+theme(plot.margin = unit(c(0,0,0,20), 'pt')), B3_raw+rremove('legend') + rremove('axis.title')+theme(plot.margin = unit(c(0,0,0,20), 'pt')), nrow = 3, labels = c('B','C','D'), heights = c(1,1,1))
+
+blocks
+
+all_DR <- ggarrange(DR_raw+rremove('axis.title'), blocks, ncol = 2, labels = c('A'), common.legend = TRUE)
+all_DR
+
+all_DR <- annotate_figure(all_DR, 
+                          left = text_grob('Population index [95% ci]', rot = 90, size = 16),
+                          bottom = text_grob('Sample day', size = 16))
+
+all_DR
+
+ggsave('all_DR_outdoor.tif', height = 6, width = 8)
+
+
 
 
 hist(DR$No_worms) #lots of zeroes
