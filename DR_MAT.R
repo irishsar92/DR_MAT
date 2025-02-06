@@ -42,7 +42,7 @@ suppressPackageStartupMessages({
   library(scales)
 })
 
-palette <- c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')
+palette <- c('#1F77B4FF' ,'#FF7F0EFF','#2CA02CFF', '#D62728FF' )
 
 
 #edit_git_config()
@@ -52,8 +52,7 @@ palette <- c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')
 #use_github()
 
 R.version
-citation()
-citation('emmeans')
+
 
 # DRO Lifespan ------------------------------------------------------------
 
@@ -75,6 +74,8 @@ surv<-survfit(Surv(Age,Event)~Treatment.ID,data=DRO_LS2)
 
 LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = DRO_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.3, 0.4), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,32), break.time.by = 5, palette = palette, position= position_dodge(0.9), legend.labs=c("F" ,"DR", "DR+O","F+O"),font.tickslab = c(14),  font.legend = c(16), font.title = c(16))
 LS_plot
+
+ggsave('LS_colloq.tif', height = 10, width = 8)
 
 DRO_LS3 <- DRO_LS2 %>%
   filter(DRO_LS2$Cause != 'M')
@@ -111,8 +112,8 @@ meforest <- function(cox, F){  #Eds version of forest plot
   store$CIL <- as.numeric(as.character(store$CIL))
   store$CUL <- as.numeric(as.character(store$CUL))
   forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Treatment, colour = Treatment)) +
-    geom_point(size=4, shape = 19, colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
+    geom_point(size=4, shape = 19, colour = c('#1F77B4FF', '#2CA02CFF', '#D62728FF','#FF7F0EFF')) +
+    geom_errorbarh(height=0.25, size=0.9,  colour = c('#1F77B4FF', '#2CA02CFF', '#D62728FF','#FF7F0EFF')) +
     theme_minimal() +
     geom_vline(xintercept=0, linetype="dotted", size=0.8) +
     xlab("Hazard Ratio")+
@@ -266,7 +267,13 @@ Lambda_rep_dab <- mean_diff(Lambda_rep)
 
 lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
-lam_plot
+
+Lam_plot <- ggarrange(lam_plot + theme(plot.margin = unit(c(10, 30, 0, 10), 'pt')), nrow = 1)
+
+
+Lam_plot
+
+ggsave('lambda_rep.tif', height = 6, width =5)
 
 rep/(tot_rep_plot+lam_plot)
 
@@ -278,6 +285,10 @@ DR_rep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'))
 DR_rep_plot
 ggsave('DRO_rep_plot.tif', height = 10, width = 8)
 
+DR_rep_no_L <- ggarrange(rep, tot_rep_plot+theme(plot.margin = unit(c(10,30,0,10), 'pt')), ncol = 2, labels = c('A','B'), widths = c(1, 0.5))
+DR_rep_no_L
+
+ggsave('DRO_rep_plot_no_L.tif', height = 5, width = 10)
 
 
 hist(Data$Lambda)#distribution is a bit bimodal, but try linear model
@@ -507,6 +518,14 @@ lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marke
 
 lam_plot
 
+
+Mated_Lam_plot <- ggarrange(lam_plot + theme(plot.margin = unit(c(10, 30, 0, 10), 'pt')), nrow = 1)
+
+
+Mated_Lam_plot
+
+ggsave('lambda_mated_rep.tif', height = 6, width =5)
+
 rep/(tot_rep_plot + lam_plot)
 
 
@@ -516,6 +535,12 @@ DR_malerep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'), heights = c
 
 ggsave('DRO_male_reproduction.tif', height = 10, width = 8)
 
+
+
+DR_Mrep_no_L <- ggarrange(rep, tot_rep_plot+theme(plot.margin = unit(c(10,30,0,10), 'pt')), ncol = 2, labels = c('A','B'), widths = c(1, 0.5))
+DR_Mrep_no_L
+
+ggsave('DRO_Mrep_plot_no_L.tif', height = 5, width = 10)
 
 #Analyse age-specific reproduction 
 
@@ -1184,6 +1209,7 @@ all_DR
 ggsave('all_DR_outdoor.tif', height = 6, width = 8)
 
 
+DR$Block <- as.factor(DR$Block)
 
 
 hist(DR$No_worms) #lots of zeroes
@@ -1226,13 +1252,15 @@ DR_sim5 <- simulateResiduals(DR_mod5, plot = T)
 testDispersion(DR_sim5)
 AIC(DR_mod4, DR_mod5)
 
+pred_5 <- predict_response(DR_mod5, terms = c("Day [all]", "Treatment"))
+ggplot(pred_5, aes(x = x, y = predicted, colour = group)) +
+  geom_line()
+
+
 DR_mod6 <- glmmTMB(No_worms ~ Treatment * poly(Day,2) + Block + (1|Population/Rep), ziformula = ~ Day, dispformula = ~ Block+Day, data = DR, family = 'nbinom2')
 summary(DR_mod6)
 AIC(DR_mod4, DR_mod6)
 
-DR_sim6 <- simulateResiduals(DR_mod6, plot= T)
-anova(DR_mod4, DR_mod6)#barely different - may keep it out for simplicity and interpretation - AIC shows little change
-summary(DR_mod6)
 
 DR_mod7 <- glmmTMB(No_worms ~ Treatment*I(Day^2)*Block+Treatment*Day + (1|Population/Rep), ziformula =~Day, dispformula =~Block+Day, data = DR, family = 'nbinom2')
 AIC(DR_mod5, DR_mod6, DR_mod7)
@@ -1294,7 +1322,6 @@ summary(DR_mod17)
 pred_17 <- predict_response(DR_mod17, terms = c("Day [all]", "Treatment"))
 ggplot(pred_17, aes(x = x, y = predicted, colour = group)) +
   geom_line()
-
 
 DR_mod18 <- glmmTMB(No_worms ~Treatment*I(Day^2)+Block*I(Day^2)+Day + (1|Population/Rep), ziformula = ~ I(Day^2), dispformula = ~ Treatment*I(Day^2)+Block, data = DR, family = 'nbinom2')
 AIC(DR_mod18, DR_mod17)#17 is better
