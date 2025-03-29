@@ -73,4 +73,24 @@ Treatment: F, F+O, DR, DR+O as described in overview
 Day: Day of adulthood body sizewas measured on (Day 2 or 4)
 Body: Surface area of body (mm^2)
 
-  
+File: DR_HS
+Description: Survival during and following heatshock (37C) following treatments as described in overview. Mortality checks were performed hourly during the 9 hour heatshock treatment and daily beginning the day after heatshock treatment
+Variables:
+Plate_ID: Plate identification number: individuals were kept in groups of ten per plate within treatments
+Treatment: F, F+O, DR, DR+O as described in overview
+Age: Number provided to each timepoint irrespective of hour/day (i.e., Hourly mortality check data during heatshock occurs at Age 1-9, Day 1 mortality check occurs at Age 10 (this is only used to generate a survival plot that adequately shows the survival curves during heatshock, but is not used for analysis)
+Time: Time/Day that mortality was observed/recorded
+Event: Binary variable where 1 = natural death, 0 = death due to unnatural causes (i.e., lost individuals, walled individuals)
+Day: Day at which individuals were recorded as dead (hourly heatshock mortalities are represented as a proportion of 24 hours)
+
+File: DR_wild2
+Description: Population index data based on counts from a 5ml sample of compost from a 250 ml microcosm containing starting populations of 50 individuals following a 24-hour dietary treatment in adulthood. Samples were taken weekly over a 3-week period
+Variables:
+Tube: Identification number for tubes/microcosms each containing a population from a single treatment
+Treatment: F, F+O, DR, DR+O as described in overview
+Rep: Technical replicate produced by taking a 0.10 ml sample of liquid containing suspended nematodes from compost samples, pipetted onto an agar plate to allow for counting
+Day: 7, 14, or 21, representing the day the sample was taken after microcosms were inoculated with nematode populations and placed outdoors
+No_worms: Number of individual nematodes counted from a technical replicate
+Block: Experiment was performed in 3 3-week intervals throughout summer of 2024
+Population: Individual identification number of populations across all blocks
+
