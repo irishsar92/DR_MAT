@@ -508,6 +508,7 @@ sim_lam_mated <- simulateResiduals(mated_lam, plot = T)
 
 emm_mated_lam <- emmeans(mated_lam, 'Treatment')
 pairs(emm_mated_lam)
+
 #create dabestr plot
 Lambda_rep <-
   Data %>%
@@ -621,111 +622,6 @@ sim7 <- simulateResiduals(mated_mod9, plot = T)
 testZeroInflation(sim9)
 testDispersion(sim9)
 ##stick with 7
-------------------------------------------------------
-
-Mated_LS <- read.csv('Mated_LS.csv')
-Mated_LS$Treatment.ID <- as.factor(Mated_LS$Treatment.ID)
-
-#Combine Repro and LS plate columns to get 1 column of plate IDs
-Mated_LS$Plate <- coalesce(Mated_LS$Repro.ID, Mated_LS$LS.plate)
-
-#Remove these columns as they add unnecessary Nas to the dataset
-Mated_LS = subset(Mated_LS, select = -c(Repro.ID, LS.plate))
-
-Mated_LS <- na.omit(Mated_LS)
-
-Mated_LS$Treatment.ID <- as.factor(Mated_LS$Treatment.ID)
-Mated_LS$Treatment.ID <- droplevels(Mated_LS$Treatment.ID)
-levels(Mated_LS$Treatment.ID)
-
-Mated_LS$Treatment.ID <- revalue(Mated_LS$Treatment.ID, c('F' = 'F', 'FO' = 'F+O', 'DR' = 'DR', 'DRO' = 'DR+O'))
-
-
-#Exclude lost or walled worms
-Mated_LS2 <-Mated_LS %>%
-  filter(Mated_LS$Cause != 'L' & Mated_LS$Cause !='W')
-
-#Remove infected males (this infection appeared extremely pathogenic and detrimental, thus we decided to exclude these individuals)
-Mated_LS2 <- Mated_LS2 %>%
-  filter(Mated_LS2$Infect != 'Y')
-
-surv<-survfit(Surv(Age,Event)~Treatment.ID,data=Mated_LS2)
-
-Mated_LS_plot <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS2, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.3), legend.title = "", title = "Matricides uncensored", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, palette = palette, position= position_dodge(0.9), font.tickslab = c(14), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.legend = c(16))
-Mated_LS_plot
-
-#Censor matricides
-Mated_LS3 <- Mated_LS2 %>%
-  filter(Mated_LS2$Cause != 'M')
-
-surv<-survfit(Surv(Age,Event)~Treatment.ID,data=Mated_LS3)
-
-Mated_LS_plot_matcen <-ggsurvplot(surv, ylab="Survival probability\n", data = Mated_LS3, size= 0.8, font.ylab= 18, font.xlab= 18, legend = c(0.2, 0.2), legend.title = "", palette = palette, title = "Matricides censored", censor = FALSE, xlab = "\nDay", xlim=c(0,30), break.time.by = 5, position= position_dodge(0.9), legend.labs=c("DR" ,"DR+O", "F","F+O"), font.tickslab = c(14), font.legend = c(16))
-Mated_LS_plot_matcen
-
-#Function for creating forest plot
-meforest <- function(cox, F){  #Eds version of forest plot
-  require(AICcmodavg)
-  require(ggplot2)
-  require(forcats)
-  store <- matrix(nrow = length(cox$coefficients) + 1, ncol = 4)
-  ref <- c(paste(F), 0,NA, NA)
-  store[1,] <- ref
-  for (x in 1:length(cox$coefficients)){
-    y = x+1
-    mean<-cox$coefficients[x]
-    emean <- (mean)
-    CIL <- cox$coefficients[x] - (1.96*extractSE(cox)[x])
-    CUL <- cox$coefficients[x] + (1.96*extractSE(cox)[x])
-    eCIL <- (CIL)
-    eCUL <- (CUL)
-    store[y, 1:4] <- c(names(cox$coefficients[x]), emean, eCIL, eCUL)}
-  colnames(store) <- c("Treatment", "mean", "CIL","CUL")
-  store <- as.data.frame(store)
-  store$mean <- as.numeric(as.character(store$mean))
-  store$CIL <- as.numeric(as.character(store$CIL))
-  store$CUL <- as.numeric(as.character(store$CUL))
-  forest<-ggplot(store, aes(x = mean, xmax = CUL, xmin = CIL, y = Treatment, colour = Treatment)) +
-    geom_point(size=4, shape = 19, colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
-    geom_errorbarh(height=0.25, size=0.9,  colour = c('#1F77B4FF', '#FF7F0EFF', '#2CA02CFF','#D62728FF')) +
-    theme_minimal() +
-    geom_vline(xintercept=0, linetype="dotted", size=0.8) +
-    xlab("Hazard Ratio")+
-    ylab("")+
-    theme(
-      axis.text = element_text(size = 18),
-      axis.title = element_text(size = 20)
-    )+
-    scale_y_discrete(limits = (levels(store$Treatment.ID)))+
-    expand_limits(x = c(-1.5,0.5))
-  return(forest)
-}
-
-
-cox <- coxme(Surv(Age, Event) ~ Treatment.ID + (1|Plate), data = Mated_LS2)
-summary(cox)
-
-forest <-meforest(cox, "F")
-forest
-
-cox_matcen <- coxme(Surv(Age, Event) ~ Treatment.ID +(1|Plate), data = DRO_LS3)
-summary(cox_matcen)
-
-forest_matcen <- meforest(cox_matcen, 'F')
-forest_matcen
-
-DR_all_plot <- ggarrange(LS_plot$plot, LS_plot_matcen$plot, forest, forest_matcen, nrow = 2, ncol = 2,heights = c(2, 1))
-DR_all_plot
-ggsave('DR_all_plot.tif', height = 8, width = 12)
-
-#test cox models for fit
-cox.zph(cox)
-cox.zph(cox_matcen)
-
-
-
-
-
 
 
 # DRO Heatshock Survival --------------------------------------------------
@@ -995,9 +891,6 @@ pairs(emm_D4size)
 
 emm_growth <- emmeans(growth_mod, 'Treatment')
 pairs(emm_growth)
-
-
-D4_means <- summarySE(data = D4, measurevar = 'Size')
 
 
 # Outdoor -----------------------------------------------------------------
@@ -1273,7 +1166,4 @@ testZeroInflation(DR_sim6)
 DR_mod6_2 <- glmmTMB(No_worms ~ Treatment * Day * Block + Treatment *I(Day^2) * Block + (1|Population/Rep), ziformula = ~ Day + Block, data = DR, family = 'nbinom2',, control =glmmTMBControl(optCtrl=list(iter.max=1e3,eval.max=1e3)))
 Anova(DR_mod6_2, type = 'III')
 
-
-library(sjPlot)
-tab_model(DR_mod6)
 
