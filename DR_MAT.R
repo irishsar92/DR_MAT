@@ -205,8 +205,12 @@ rep
 totalrep<-na.omit(as.data.frame.table(tapply(rep_long$value,list(rep_long$Treatment, rep_long$ID),sum)))
 
 
+
 #rename columns
 names(totalrep)<-c("Treatment", "Replicate", "Totrep")
+
+
+totalrep_means <- summarySE(data = totalrep, measurevar = 'Totrep', groupvars = 'Treatment')
 
 totrep_dab <-
   totalrep %>%
@@ -822,6 +826,10 @@ egg_2 <- egg %>%
 egg_4 <- egg %>%
   filter(Day == 4)
 
+egg_2_means <- summarySE(data = egg_2, measurevar = 'Egg_size', groupvars = 'Treatment')
+
+egg_4_means <- summarySE(data = egg_4, measurevar = 'Egg_size', groupvars = 'Treatment')
+
 Egg_d4 <-
   egg_4 %>%
   load(Treatment, Egg_size,
@@ -987,6 +995,9 @@ pairs(emm_D4size)
 
 emm_growth <- emmeans(growth_mod, 'Treatment')
 pairs(emm_growth)
+
+
+D4_means <- summarySE(data = D4, measurevar = 'Size')
 
 
 # Outdoor -----------------------------------------------------------------
