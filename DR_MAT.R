@@ -47,10 +47,12 @@ palette <- c('#1F77B4FF' ,'#FF7F0EFF','#2CA02CFF', '#D62728FF' )
 
 
 #edit_git_config()
-#use_git()
+use_git()
 #create_github_token()
 #gitcreds_set()
 use_github()
+
+
 
 R.version
 
