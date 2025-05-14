@@ -50,7 +50,7 @@ palette <- c('#1F77B4FF' ,'#FF7F0EFF','#2CA02CFF', '#D62728FF' )
 #use_git()
 #create_github_token()
 #gitcreds_set()
-#use_github()
+use_github()
 
 R.version
 
@@ -229,83 +229,15 @@ summary(tot_rep_mod)
 
 emm_LRS <- emmeans(tot_rep_mod, 'Treatment')
 pairs(emm_LRS)
-#### Lambda
-
-#spread data back out
-rep_wide <- spread(rep_long, Day, value)
-
-rep_wide <- na.omit(rep_wide)
-
-#calculate Lambda for each individual
-L <- matrix(nrow = nrow(rep_wide), ncol = 3)
-
-for (i in 1:nrow(rep_wide)){
-  Les <- matrix(0, ncol = 10, nrow = 10) #ncol and nrow should = no. days repro +2
-  diag(Les[-1,]) <- rep(1, 9) # add the 1s for survival probability diagonally
-  Fert <- c(0,0, as.numeric(as.vector(rep_wide[i,][3:10]))) #the columns in data that has the reproductive counts
-  Fert[is.na(Fert)] <- 0 #makes all NAs into 0s
-  Les[1,] <- c(Fert)
-  class(Les) <- "leslie.matrix"
-  Lambda <- popbio::eigen.analysis(Les)$lambda1
-  L[i, 1:3] <- c(paste0(rep_wide$ID[i]), paste0(rep_wide$Treatment[i]), Lambda)
-  
-}
-
-#rename columns
-colnames(L)<-c("ID", "Treatment","Lambda")
-
-#make L a data frame
-Data<-as.data.frame(L)
-
-#make sure it's numeric
-Data$Lambda<-as.numeric(as.character(Data$Lambda))
-
-str(Data)
-
-#create dabestr plot
-Lambda_rep <-
-  Data %>%
-  load(Treatment, Lambda,
-       idx = list(c("F", "F+O", "DR", "DR+O")))
-
-Lambda_rep_dab <- mean_diff(Lambda_rep)
 
 
-lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
 
-
-Lam_plot <- ggarrange(lam_plot + theme(plot.margin = unit(c(10, 30, 0, 10), 'pt')), nrow = 1)
-
-
-Lam_plot
-
-ggsave('lambda_rep.tif', height = 6, width =5)
-
-rep/(tot_rep_plot+lam_plot)
-
-bottom <- ggarrange(tot_rep_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), lam_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2, labels = c('B', 'C'))
-
-DR_rep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'))
-
-
+DR_rep_plot <- ggarrange(rep, tot_rep_plot+theme(plot.margin = unit(c(10,30,0,10), 'pt')), ncol = 2, labels = c('A','B'), widths = c(1, 0.5))
 DR_rep_plot
-ggsave('DRO_rep_plot.tif', height = 10, width = 8)
 
-DR_rep_no_L <- ggarrange(rep, tot_rep_plot+theme(plot.margin = unit(c(10,30,0,10), 'pt')), ncol = 2, labels = c('A','B'), widths = c(1, 0.5))
-DR_rep_no_L
-
-ggsave('DRO_rep_plot_no_L.tif', height = 5, width = 10)
+ggsave('DRO_rep_plot.tif', height = 5, width = 10)
 
 
-hist(Data$Lambda)#distribution is a bit bimodal, but try linear model
-lam_mod <- lm(Lambda ~ Treatment, data = Data)
-summary(lam_mod)#results make sense
-sim_lam <- simulateResiduals(lam_mod, plot = T) 
-
-hist(rep_long$value) #use poisson model
-
-emm_lam <- emmeans(lam_mod, 'Treatment')
-pairs(emm_lam)
 
 rep_long$Day <- revalue(rep_long$Day, c('D1' = '1', 'D2' = '2', 'D3' = '3', 'D4' = '4', 'D5' = '5', 'D6' = '6', 'D7' = '7', 'D8' = '8'))
 rep_long$Day <- as.numeric(rep_long$Day)
@@ -460,84 +392,6 @@ mated_tot_sim <- simulateResiduals(Mated_tot, plot = T)
 
 emm_mated_LRS <- emmeans(Mated_tot, 'Treatment')
 pairs(emm_mated_LRS)
-#### Lambda
-
-#spread data back out
-rep_wide <- spread(rep_long, Day, value)
-
-rep_wide <- na.omit(rep_wide)
-
-rep_wide <- subset(rep_wide, select = -c(Lost))
-
-rep_wide$Treatment <- relevel(rep_wide$Treatment, ref = 'F')
-
-
-#calculate Lambda for each individual
-L <- matrix(nrow = nrow(rep_wide), ncol = 4)
-
-for (i in 1:nrow(rep_wide)){
-  Les <- matrix(0, ncol = 12, nrow = 12) #ncol and nrow should = no. days repro +2
-  diag(Les[-1,]) <- rep(1, 11) # add the 1s for survival probability diagonally
-  Fert <- c(0,0, as.numeric(as.vector(rep_wide[i,][4:13]))) #the columns in data that has the reproductive counts
-  Fert[is.na(Fert)] <- 0 #makes all NAs into 0s
-  Les[1,] <- c(Fert)
-  class(Les) <- "leslie.matrix"
-  Lambda <- popbio::eigen.analysis(Les)$lambda1
-  L[i, 1:4] <- c(paste0(rep_wide$Block[i]), paste0(rep_wide$Treatment[i]), paste0(rep_wide$ID[i]), Lambda)
-  
-}
-
-#rename columns
-colnames(L)<-c("Block",  "Treatment","ID","Lambda")
-
-#make L a data frame
-Data<-as.data.frame(L)
-
-#make sure it's numeric
-Data$Lambda<-as.numeric(as.character(Data$Lambda))
-
-str(Data)
-
-Data$Treatment <- as.factor(Data$Treatment)
-Data$Treatment <- relevel(Data$Treatment, ref = 'F')
-
-
-mated_lam <- lm(Lambda ~ Treatment, data = Data)
-summary(mated_lam)
-sim_lam_mated <- simulateResiduals(mated_lam, plot = T)
-
-emm_mated_lam <- emmeans(mated_lam, 'Treatment')
-pairs(emm_mated_lam)
-
-#create dabestr plot
-Lambda_rep <-
-  Data %>%
-  load(Treatment, Lambda,
-       idx = list(c("F", "F+O", "DR", "DR+O")))
-
-Lambda_rep_dab <- mean_diff(Lambda_rep)
-
-lam_plot <- dabest_plot(Lambda_rep_dab, FALSE, swarm_label = 'Lambda', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3, tufte_size = 1)
-
-lam_plot
-
-
-Mated_Lam_plot <- ggarrange(lam_plot + theme(plot.margin = unit(c(10, 30, 0, 10), 'pt')), nrow = 1)
-
-
-Mated_Lam_plot
-
-ggsave('lambda_mated_rep.tif', height = 6, width =5)
-
-rep/(tot_rep_plot + lam_plot)
-
-
-bottom <- ggarrange(tot_rep_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), lam_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2, labels = c('B', 'C'))
-
-DR_malerep_plot <- ggarrange(rep, bottom, nrow = 2, labels = c('A'), heights = c(1.3, 1))
-
-ggsave('DRO_male_reproduction.tif', height = 10, width = 8)
-
 
 
 DR_Mrep_no_L <- ggarrange(rep, tot_rep_plot+theme(plot.margin = unit(c(10,30,0,10), 'pt')), ncol = 2, labels = c('A','B'), widths = c(1, 0.5))
@@ -733,7 +587,7 @@ Egg_d4 <-
 
 Egg_d4_dab <- mean_diff(Egg_d4)
 
-Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = '', contrast_label = '', raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3)
+Egg_d4_plot <- dabest_plot(Egg_d4_dab, FALSE, swarm_label = expression('Area mm'^2), raw_marker_spread = 1, custom_palette = 'd3', swarm_x_text = 12, swarm_y_text = 12, contrast_y_text = 12, contrast_x_text = 12, raw_marker_alpha = 0.3)
 
 Egg_d4_plot
 
@@ -751,11 +605,19 @@ Egg_d2_plot <- dabest_plot(Egg_d2_dab, FALSE, swarm_label = expression('Area mm'
 
 Egg_d2_plot
 
-egg_plots <- ggarrange(Egg_d2_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), labels = c('A', 'B'), Egg_d4_plot+theme(plot.margin = unit(c(0,10,0,30), 'pt')), ncol = 2)
+egg_plots <- ggarrange(Egg_d2_plot+theme(plot.margin = unit(c(0,30,0,50), 'pt')), labels = c('C', 'D'), Egg_d4_plot+theme(plot.margin = unit(c(0,30,0,50), 'pt')), ncol = 2)
 
 egg_plots
 
 ggsave('egg.tif', height = 4, width = 8)
+
+
+
+all_rep_plot <- ggarrange(DR_rep_plot, egg_plots, nrow = 2)
+all_rep_plot
+
+ggsave('all_DR_rep.tif', height = 10, width = 10)
+
 
 
 head(egg)
