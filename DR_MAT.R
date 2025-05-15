@@ -46,10 +46,10 @@ suppressPackageStartupMessages({
 palette <- c('#1F77B4FF' ,'#FF7F0EFF','#2CA02CFF', '#D62728FF' )
 
 
-#edit_git_config()
+edit_git_config()
 use_git()
 #create_github_token()
-#gitcreds_set()
+gitcreds_set()
 use_github()
 
 
